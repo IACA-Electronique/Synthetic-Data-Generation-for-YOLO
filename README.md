@@ -22,6 +22,7 @@ This program allows you to create synthetic data for YOLO object detection model
 program \
 --background-dir <path_to_background_images> \
 --object-dir <path_to_object_images> \
+--distraction-dir <path_to_object_images> \
 --output-dir <path_to_output_directory>
 ```
 
