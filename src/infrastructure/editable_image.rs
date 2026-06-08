@@ -10,6 +10,8 @@ pub trait EditableImage {
     fn set_background_from_color(&mut self, color: (u8, u8, u8));
     fn add_object_from_file(&mut self, path: &str, x: u32, y: u32, width: u32, height: u32, angle: f32);
     fn add_scalable_object_from_file(&mut self, path: &str, x: u32, y: u32, scale: f32, angle: f32);
+    fn width(&self) -> u32;
+    fn height(&self) -> u32;
 
 }
 
@@ -168,5 +170,13 @@ impl EditableImage for ImageEditableImage {
         let scaled_height = ((object.height() as f32) * scale).round().max(1.0) as u32;
 
         self.add_object_from_file(path, x, y, scaled_width, scaled_height, angle)
+    }
+
+    fn width(&self) -> u32 {
+        self.image.width()
+    }
+
+    fn height(&self) -> u32 {
+        self.image.height()
     }
 }
