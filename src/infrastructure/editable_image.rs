@@ -1,5 +1,5 @@
 use image::{imageops, Rgba, RgbaImage};
-use imageproc::geometric_transformations::{rotate_about_center, Interpolation};
+use imageproc::geometric_transformations::{rotate_about_center, translate, Interpolation};
 
 pub trait EditableImage {
 
@@ -19,36 +19,67 @@ pub struct ImageEditableImage {
 }
 
 impl ImageEditableImage {
-    fn rotate_without_crop(object: &RgbaImage, angle: f32) -> RgbaImage {
-        let width = object.width();
-        let height = object.height();
 
-        let diagonal = ((width.pow(2) + height.pow(2)) as f32)
+    /// Rotates an RGBA image around its center without cropping its content.
+    ///
+    /// The image is first placed on a transparent square canvas large enough to
+    /// contain the full diagonal of the original image. This prevents corners from
+    /// being clipped during rotation.
+    ///
+    /// After rotation, the result is translated onto a smaller transparent canvas
+    /// sized to fit the rotated bounding box as closely as possible.
+    ///
+    /// # Arguments
+    ///
+    /// * `object` - The source image to rotate.
+    /// * `angle` - The rotation angle in degrees.
+    ///
+    /// # Returns
+    ///
+    /// A new [`RgbaImage`] containing the rotated image with a transparent
+    /// background and without cropping the original content.
+    ///
+    /// # Notes
+    ///
+    /// The rotation uses bilinear interpolation, which gives smoother results than
+    /// nearest-neighbor interpolation but may slightly blend edge pixels.
+    fn rotate_without_crop(object: &RgbaImage, angle: f32) -> RgbaImage {
+        let diagonal = ((object.width().pow(2) + object.height().pow(2)) as f32)
             .sqrt()
             .ceil() as u32;
 
-        let mut canvas = RgbaImage::from_pixel(
+        let mut max_sized_canvas = RgbaImage::from_pixel(
             diagonal,
             diagonal,
             Rgba([0, 0, 0, 0]),
         );
 
-        let offset_x = ((diagonal - width) / 2) as i64;
-        let offset_y = ((diagonal - height) / 2) as i64;
+        let offset_x = (diagonal as i64 - object.width() as i64)  / 2;
+        let offset_y = (diagonal as i64 - object.height() as i64) / 2;
 
         imageops::overlay(
-            &mut canvas,
+            &mut max_sized_canvas,
             object,
             offset_x,
             offset_y,
         );
 
-        rotate_about_center(
-            &canvas,
+        let rotated_image_in_max_sized_canvas = rotate_about_center(
+            &max_sized_canvas,
             angle.to_radians(),
             Interpolation::Bilinear,
             Rgba([0, 0, 0, 0]),
-        )
+        );
+
+        let optimized_width: u32 = (object.width() as f32 * angle.to_radians().abs().cos() + object.height() as f32 * angle.to_radians().abs().sin()) as u32;
+        let optimized_height: u32 = (object.width() as f32 * angle.to_radians().abs().sin() + object.height() as f32 * angle.to_radians().abs().cos()) as u32;
+
+        let translation_x = (optimized_width as i64 - rotated_image_in_max_sized_canvas.width() as i64) / 2;
+        let translation_y = (optimized_height as i64 - rotated_image_in_max_sized_canvas.height() as i64 ) / 2;
+
+        let optimized_canvas = translate(&rotated_image_in_max_sized_canvas, (translation_x as i32, translation_y as i32));
+
+        optimized_canvas
     }
 }
 
