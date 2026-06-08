@@ -1,0 +1,17 @@
+.idea
+build
+dist
+
+.env*
+!.env.example
+
+*.tmp
+
+.dockerignore
+!/deployment/.dockerignore
+
+http/http-client.env.json
+
+# Rust
+target
+Cargo.lock
