@@ -25,6 +25,9 @@ struct Args {
     /// Path to output directory
     #[arg(long)]
     output_dir: String,
+
+    #[arg(long, short = 'c', required = true)]
+    count: Option<u32>,
 }
 
 struct App {
@@ -47,7 +50,7 @@ impl App {
         );
 
         let file_system = SimpleFileSystem::new();
-        let recipes = recipes_generator.generate(&file_system, 5)?;
+        let recipes = recipes_generator.generate(&file_system, self.args.count.unwrap())?;
 
 
         let output_dir = Path::new(&self.args.output_dir);
