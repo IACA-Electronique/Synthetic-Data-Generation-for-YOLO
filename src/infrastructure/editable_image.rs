@@ -1,6 +1,8 @@
 use image::{imageops, Rgba, RgbaImage};
 use imageproc::geometric_transformations::{rotate_about_center, Interpolation};
+use mockall::automock;
 
+#[automock]
 pub trait EditableImage {
 
     fn from_file(path: &str) -> Self;
@@ -158,12 +160,14 @@ impl EditableImage for ImageEditableImage {
     ) {
         let object = image::open(path)
             .expect("failed to open object image")
-            .resize_exact(
-                width,
-                height,
-                imageops::FilterType::Lanczos3,
-            )
             .to_rgba8();
+
+        let object = imageops::resize(
+            &object,
+            width,
+            height,
+            imageops::FilterType::Nearest,
+        );
 
         let rotated = Self::rotate_without_crop(&object, angle);
 
