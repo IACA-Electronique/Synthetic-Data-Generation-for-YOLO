@@ -1,6 +1,6 @@
-use rand::Rng;
 use crate::infrastructure::filesystem::FileSystem;
 use crate::models::image_recipe::{ImageRecipe, PrintableElementRecipe};
+use rand::Rng;
 
 pub trait ImageRecipeGenerator {
     fn create(
@@ -11,7 +11,11 @@ pub trait ImageRecipeGenerator {
         height: u32,
         output_dir: String,
     ) -> Self;
-    fn generate<FS: FileSystem>(&self, filesystem: &FS, count: u32) -> Result<Vec<ImageRecipe>, String>;
+    fn generate<FS: FileSystem>(
+        &self,
+        filesystem: &FS,
+        count: u32,
+    ) -> Result<Vec<ImageRecipe>, String>;
 }
 
 // ###################################### IMPL #####################################################
@@ -23,11 +27,29 @@ pub struct ImageRecipeGeneratorImpl {
     background_dir: String,
     object_dir: String,
     distraction_dir: Option<String>,
-    width: u32, height: u32,
+    width: u32,
+    height: u32,
     output_dir: String,
 }
 
-impl  ImageRecipeGeneratorImpl {
+impl ImageRecipeGeneratorImpl {
+    pub fn new(
+        background_dir: String,
+        object_dir: String,
+        distraction_dir: Option<String>,
+        width: u32,
+        height: u32,
+        output_dir: String,
+    ) -> Self {
+        Self {
+            background_dir,
+            object_dir,
+            distraction_dir,
+            width,
+            height,
+            output_dir,
+        }
+    }
 
     fn pick_background<FS: FileSystem>(&self, filesystem: &FS) -> Result<String, String> {
         let backgrounds = filesystem.list_files(&self.background_dir)?;
@@ -88,16 +110,29 @@ impl  ImageRecipeGeneratorImpl {
 }
 
 impl ImageRecipeGenerator for ImageRecipeGeneratorImpl {
-    fn create(background_dir: &str, object_dir: &str, distraction_dir: Option<String>, width: u32, height: u32, output_dir: String) -> Self {
+    fn create(
+        background_dir: &str,
+        object_dir: &str,
+        distraction_dir: Option<String>,
+        width: u32,
+        height: u32,
+        output_dir: String,
+    ) -> Self {
         ImageRecipeGeneratorImpl {
             background_dir: background_dir.to_string(),
             object_dir: object_dir.to_string(),
             distraction_dir,
-            width, height, output_dir,
+            width,
+            height,
+            output_dir,
         }
     }
 
-    fn generate<FS: FileSystem>(&self, filesystem: &FS, count: u32) -> Result<Vec<ImageRecipe>, String> {
+    fn generate<FS: FileSystem>(
+        &self,
+        filesystem: &FS,
+        count: u32,
+    ) -> Result<Vec<ImageRecipe>, String> {
         let mut recipes: Vec<ImageRecipe> = Vec::new();
 
         for i in 0..count {
@@ -114,8 +149,9 @@ impl ImageRecipeGenerator for ImageRecipeGeneratorImpl {
             }
 
             if self.distraction_dir.is_some() {
-                let mut distractions : Vec<PrintableElementRecipe>= Vec::new();
-                let distraction_count = ImageRecipeGeneratorImpl::random(1, DISTRACTION_COUNT_PER_IMAGE);
+                let mut distractions: Vec<PrintableElementRecipe> = Vec::new();
+                let distraction_count =
+                    ImageRecipeGeneratorImpl::random(1, DISTRACTION_COUNT_PER_IMAGE);
                 for _ in 0..distraction_count {
                     distractions.push(self.pick_distraction(filesystem)?);
                 }

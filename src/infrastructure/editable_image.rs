@@ -1,6 +1,8 @@
 use image::{imageops, Rgba, RgbaImage};
 use imageproc::geometric_transformations::{rotate_about_center, Interpolation};
+use mockall::automock;
 
+#[automock]
 pub trait EditableImage {
 
     fn from_file(path: &str) -> Self;

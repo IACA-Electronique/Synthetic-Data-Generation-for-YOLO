@@ -4,6 +4,7 @@ use std::process::ExitCode;
 use synthetic_data_generator_for_yolo::infrastructure::editable_image::ImageEditableImage;
 use synthetic_data_generator_for_yolo::infrastructure::filesystem::SimpleFileSystem;
 use synthetic_data_generator_for_yolo::services::image_generator::{ImageGenerator, ImageGeneratorImpl};
+use synthetic_data_generator_for_yolo::services::image_recipe_generator::{ImageRecipeGenerator, ImageRecipeGeneratorImpl};
 use synthetic_data_generator_for_yolo::settings::VERSION;
 
 #[derive(Parser)]
@@ -36,23 +37,27 @@ impl App {
     }
 
     async fn run(&self) -> Result<(), String> {
-        let filesystem = Box::new(SimpleFileSystem::new());
-        let generator = ImageGeneratorImpl::new(
-            filesystem,
+        let recipes_generator = ImageRecipeGeneratorImpl::new(
             self.args.background_dir.clone(),
             self.args.object_dir.clone(),
             self.args.distraction_dir.clone(),
+            1024,
+            1024,
+            self.args.output_dir.clone(),
         );
+
+        let file_system = SimpleFileSystem::new();
+        let recipes = recipes_generator.generate(&file_system, 5)?;
+
 
         let output_dir = Path::new(&self.args.output_dir);
         if !output_dir.exists() {
             std::fs::create_dir_all(output_dir).map_err(|e| e.to_string())?;
         }
 
-        let output_dir_str = output_dir.to_str().unwrap();
-        generator.generate::<ImageEditableImage>(&format!("{}/image.png", output_dir_str))?;
+        let generator = ImageGeneratorImpl::new();
+        generator.generate::<ImageEditableImage>(recipes)?;
 
-        println!("Image generated successfully at {}", output_dir_str);
         Ok(())
     }
 }
