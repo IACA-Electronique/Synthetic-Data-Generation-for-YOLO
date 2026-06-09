@@ -56,7 +56,7 @@ impl ImageEditableImage {
             Rgba([0, 0, 0, 0]),
         );
 
-        let offset_x = (diagonal as i64 - object.width() as i64)  / 2;
+        let offset_x = (diagonal as i64 - object.width() as i64) / 2;
         let offset_y = (diagonal as i64 - object.height() as i64) / 2;
 
         imageops::overlay(
@@ -66,22 +66,39 @@ impl ImageEditableImage {
             offset_y,
         );
 
+        let angle_rad = angle.to_radians();
+
         let rotated_image_in_max_sized_canvas = rotate_about_center(
             &max_sized_canvas,
-            angle.to_radians(),
+            angle_rad,
             Interpolation::Bilinear,
             Rgba([0, 0, 0, 0]),
         );
 
-        let optimized_width: u32 = (object.width() as f32 * angle.to_radians().abs().cos() + object.height() as f32 * angle.to_radians().abs().sin()) as u32;
-        let optimized_height: u32 = (object.width() as f32 * angle.to_radians().abs().sin() + object.height() as f32 * angle.to_radians().abs().cos()) as u32;
+        let cos = angle_rad.cos().abs();
+        let sin = angle_rad.sin().abs();
 
-        let translation_x = (optimized_width as i64 - rotated_image_in_max_sized_canvas.width() as i64) / 2;
-        let translation_y = (optimized_height as i64 - rotated_image_in_max_sized_canvas.height() as i64 ) / 2;
+        let optimized_width = (
+            object.width() as f32 * cos +
+                object.height() as f32 * sin
+        ).ceil().max(1.0) as u32;
 
-        let optimized_canvas = translate(&rotated_image_in_max_sized_canvas, (translation_x as i32, translation_y as i32));
+        let optimized_height = (
+            object.width() as f32 * sin +
+                object.height() as f32 * cos
+        ).ceil().max(1.0) as u32;
 
-        optimized_canvas
+        let crop_x = (rotated_image_in_max_sized_canvas.width() - optimized_width) / 2;
+        let crop_y = (rotated_image_in_max_sized_canvas.height() - optimized_height) / 2;
+
+        imageops::crop_imm(
+            &rotated_image_in_max_sized_canvas,
+            crop_x,
+            crop_y,
+            optimized_width,
+            optimized_height,
+        )
+            .to_image()
     }
 }
 
