@@ -1,0 +1,27 @@
+stages:
+  - tests
+
+variables:
+  PROJECT_NAME: synthetic-data-generator-for-yolo
+  DOCKERFILE_PATH: deployment/Dockerfile
+  DOCKERHUB_SUPPORTED_PLATFORMS: linux/amd64,linux/arm64
+  TZ: "Europe/Paris"
+  TAG_TITLE: ${CI_COMMIT_REF_NAME}
+  VERSION: ${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}
+  GIT_SUBMODULE_STRATEGY: recursive
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+tests:
+  stage: tests
+  image: rust:1-bullseye
+  before_script:
+    - cargo clean
+    - apt-get update
+    - apt install -y build-essential cmake pkg-config libclang-dev
+  script:
+    - cargo build
+    - echo "Running unit tests"
+    - cargo test
+  after_script:
+    - cargo clean
