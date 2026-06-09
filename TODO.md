@@ -2,7 +2,7 @@
 
 ## 0.1
 
-- [ ] Add dataset.yaml generator
+- [x] Add dataset.yaml generator
 - [ ] Add dataset OBB format generation
 - [ ] Update usage in README.md
 - [ ] At the end of the program, add a summary of the generated files
