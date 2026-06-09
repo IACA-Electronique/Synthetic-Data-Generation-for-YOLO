@@ -50,14 +50,15 @@ impl App {
         );
 
         let file_system = SimpleFileSystem::new();
+        println!("Generating {} recipes images...", self.args.count.unwrap());
         let recipes = recipes_generator.generate(&file_system, self.args.count.unwrap())?;
-
 
         let output_dir = Path::new(&self.args.output_dir);
         if !output_dir.exists() {
             std::fs::create_dir_all(output_dir).map_err(|e| e.to_string())?;
         }
 
+        println!("Generating {} images...", self.args.count.unwrap());
         let generator = ImageGeneratorImpl::new();
         generator.generate::<ImageEditableImage>(recipes)?;
 
