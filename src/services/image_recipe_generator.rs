@@ -99,7 +99,7 @@ impl ImageRecipeGeneratorImpl {
         }
         let index = Self::random(0, objects.len() as u32 - 1) as usize;
         let mut object_recipe = self.build_element(objects[index].clone());
-        object_recipe.id = class.unwrap_or(0);
+        object_recipe.class = class.unwrap_or(0);
         Ok(object_recipe)
     }
 

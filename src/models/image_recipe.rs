@@ -24,7 +24,7 @@ impl ImageRecipe {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct PrintableElementRecipe {
     pub path: String,
-    pub id: u32,
+    pub class: u32,
     pub size: f32,
     pub angle: f32,
     pub x: u32,
@@ -35,7 +35,7 @@ impl PrintableElementRecipe {
     pub fn new(path: String, id: u32, size: f32, angle: f32, x: u32, y: u32) -> Self {
         Self {
             path,
-            id,
+            class: id,
             size,
             angle,
             x,

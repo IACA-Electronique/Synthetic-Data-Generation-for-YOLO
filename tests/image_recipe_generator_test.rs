@@ -277,7 +277,7 @@ fn generate_picks_object_directly_when_no_sub_dir_class_exists() {
     assert!(!recipes[0].object.is_empty());
     // In single-class fallback the class id defaults to 0.
     for obj in &recipes[0].object {
-        assert_eq!(obj.id, 0);
+        assert_eq!(obj.class, 0);
     }
 }
 
