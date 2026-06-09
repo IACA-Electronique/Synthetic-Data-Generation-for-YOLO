@@ -1,5 +1,5 @@
 use image::{imageops, Rgba, RgbaImage};
-use imageproc::geometric_transformations::{rotate_about_center, translate, Interpolation};
+use imageproc::geometric_transformations::{rotate_about_center, Interpolation};
 
 pub trait EditableImage {
 
@@ -97,8 +97,7 @@ impl ImageEditableImage {
             crop_y,
             optimized_width,
             optimized_height,
-        )
-            .to_image()
+        ).to_image()
     }
 }
 
