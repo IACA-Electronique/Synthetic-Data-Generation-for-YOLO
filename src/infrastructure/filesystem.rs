@@ -7,6 +7,7 @@ pub trait FileSystem {
     fn list_subdirectories(&self, directory: &str) -> Result<Vec<String>, String>;
 }
 
+#[derive(Default)]
 pub struct SimpleFileSystem {}
 
 impl SimpleFileSystem {

@@ -30,3 +30,16 @@ pub struct PrintableElementRecipe {
     x: u32,
     y: u32,
 }
+
+impl PrintableElementRecipe {
+    pub fn new(path: String, id: u32, size: f32, angle: f32, x: u32, y: u32) -> Self {
+        Self {
+            path,
+            id,
+            size,
+            angle,
+            x,
+            y,
+        }
+    }
+}
