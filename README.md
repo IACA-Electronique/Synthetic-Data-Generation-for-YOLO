@@ -28,6 +28,14 @@ program \
 
 > Object directory should contain images of the objects you want to detect in YOLO format (JPEG or PNG). Place each category of objects in its own subfolder (e.g., `object_dir/vehicle`, `object_dir/person`, etc.).
 
+## Tests
+
+```bash
+cargo test -- --test-threads=1
+```
+
+> Because the test implementation uses Mockall context overrides, it must run on a single thread to prevent interference between test cases.
+
 ## 📜 License
 
 This project is licensed under the terms of the GNU General Public License v3.0.
