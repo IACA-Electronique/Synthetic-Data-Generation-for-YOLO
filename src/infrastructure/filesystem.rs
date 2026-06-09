@@ -5,6 +5,7 @@ use std::fs;
 pub trait FileSystem {
     fn list_files(&self, directory: &str) -> Result<Vec<String>, String>;
     fn list_subdirectories(&self, directory: &str) -> Result<Vec<String>, String>;
+    fn is_dir(&self, directory: &str) -> bool;
 }
 
 #[derive(Default)]
@@ -45,5 +46,9 @@ impl FileSystem for SimpleFileSystem {
             })
             .collect();
         Ok(subdirs)
+    }
+
+    fn is_dir(&self, directory: &str) -> bool {
+        fs::metadata(directory).map(|m| m.is_dir()).unwrap_or(false)
     }
 }
