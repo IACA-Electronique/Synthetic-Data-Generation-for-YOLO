@@ -74,7 +74,11 @@ impl ImageRecipeGeneratorImpl {
             Ok(self.pick_object_by_class(filesystem, None)?)
         }else {
             let class = Self::random(0, class_dir.len() as u32 - 1);
-            Ok(self.pick_object_by_class(filesystem, Some(class))?)
+            if filesystem.is_dir(&format!("{}/{}", self.object_dir, class)) {
+                Ok(self.pick_object_by_class(filesystem, Some(class))?)
+            }else {
+                Err(format!("Class directory {} not found", class))
+            }
         }
     }
 
