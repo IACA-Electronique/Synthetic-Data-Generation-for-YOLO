@@ -21,7 +21,7 @@ impl ImageRecipe {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct PrintableElementRecipe {
     pub path: String,
     pub id: u32,

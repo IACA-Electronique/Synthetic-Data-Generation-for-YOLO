@@ -67,12 +67,36 @@ impl ImageRecipeGeneratorImpl {
         &self,
         filesystem: &FS,
     ) -> Result<PrintableElementRecipe, String> {
-        let objects = filesystem.list_files(&self.object_dir)?;
+
+        let class_dir = filesystem.list_subdirectories(&self.object_dir)?;
+        if class_dir.is_empty() {
+            // NOTE: Class directory not found, pick directly from object directory and assume there are only one class
+            Ok(self.pick_object_by_class(filesystem, None)?)
+        }else {
+            let class = Self::random(0, class_dir.len() as u32 - 1);
+            Ok(self.pick_object_by_class(filesystem, Some(class))?)
+        }
+    }
+
+    fn pick_object_by_class<FS: FileSystem>(
+        &self,
+        filesystem: &FS,
+        class: Option<u32>,
+    ) -> Result<PrintableElementRecipe, String> {
+        let class_dir_path;
+        if class.is_none() {
+            class_dir_path = self.object_dir.clone();
+        }else {
+            class_dir_path = format!("{}/{}", self.object_dir, class.unwrap());
+        }
+        let objects = filesystem.list_files(&class_dir_path)?;
         if objects.is_empty() {
-            return Err(format!("No object images found in {}", self.object_dir));
+            return Err(format!("No object images found for class {} in {}", class.unwrap_or(0), self.object_dir));
         }
         let index = Self::random(0, objects.len() as u32 - 1) as usize;
-        Ok(self.build_element(objects[index].clone()))
+        let mut object_recipe = self.build_element(objects[index].clone());
+        object_recipe.id = class.unwrap_or(0);
+        Ok(object_recipe)
     }
 
     fn pick_distraction<FS: FileSystem>(
@@ -92,12 +116,15 @@ impl ImageRecipeGeneratorImpl {
     }
 
     fn build_element(&self, path: String) -> PrintableElementRecipe {
-        let id = Self::random(0, 1_000_000);
-        let size = Self::random_f32(0.1, 1.0);
-        let angle = Self::random_f32(0.0, 360.0);
-        let x = Self::random(0, self.width);
-        let y = Self::random(0, self.height);
-        PrintableElementRecipe::new(path, id, size, angle, x, y)
+        let mut element = PrintableElementRecipe::default();
+
+        element.path = path;
+        element.size =  Self::random_f32(0.1, 1.0);
+        element.angle = Self::random_f32(0.0, 360.0);
+        element.x = Self::random(0, self.width);
+        element.y = Self::random(0, self.height);
+
+        element
     }
 
     fn random(min: u32, max: u32) -> u32 {
