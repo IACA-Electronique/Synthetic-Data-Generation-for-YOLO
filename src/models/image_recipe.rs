@@ -23,12 +23,12 @@ impl ImageRecipe {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PrintableElementRecipe {
-    path: String,
-    id: u32,
-    size: f32,
-    angle: f32,
-    x: u32,
-    y: u32,
+    pub path: String,
+    pub id: u32,
+    pub size: f32,
+    pub angle: f32,
+    pub x: u32,
+    pub y: u32,
 }
 
 impl PrintableElementRecipe {
