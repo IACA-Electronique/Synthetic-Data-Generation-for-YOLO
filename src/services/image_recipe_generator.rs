@@ -11,7 +11,7 @@ pub trait ImageRecipeGenerator {
         height: u32,
         output_dir: String,
     ) -> Self;
-    fn generate<FS: FileSystem + Default>(&self, count: u32) -> Result<Vec<ImageRecipe>, String>;
+    fn generate<FS: FileSystem>(&self, filesystem: &FS, count: u32) -> Result<Vec<ImageRecipe>, String>;
 }
 
 // ###################################### IMPL #####################################################
@@ -97,8 +97,7 @@ impl ImageRecipeGenerator for ImageRecipeGeneratorImpl {
         }
     }
 
-    fn generate<FS: FileSystem + Default>(&self, count: u32) -> Result<Vec<ImageRecipe>, String> {
-        let filesystem = FS::default();
+    fn generate<FS: FileSystem>(&self, filesystem: &FS, count: u32) -> Result<Vec<ImageRecipe>, String> {
         let mut recipes: Vec<ImageRecipe> = Vec::new();
 
         for i in 0..count {
@@ -106,11 +105,11 @@ impl ImageRecipeGenerator for ImageRecipeGeneratorImpl {
 
             image.width = self.width;
             image.height = self.height;
-            image.background_path = self.pick_background(&filesystem)?;
+            image.background_path = self.pick_background(filesystem)?;
 
             let object_count = ImageRecipeGeneratorImpl::random(1, OBJECT_COUNT_PER_IMAGE);
             for _ in 0..object_count {
-                let object = self.pick_object(&filesystem)?;
+                let object = self.pick_object(filesystem)?;
                 image.object.push(object);
             }
 
@@ -118,7 +117,7 @@ impl ImageRecipeGenerator for ImageRecipeGeneratorImpl {
                 let mut distractions : Vec<PrintableElementRecipe>= Vec::new();
                 let distraction_count = ImageRecipeGeneratorImpl::random(1, DISTRACTION_COUNT_PER_IMAGE);
                 for _ in 0..distraction_count {
-                    distractions.push(self.pick_distraction(&filesystem)?);
+                    distractions.push(self.pick_distraction(filesystem)?);
                 }
                 image.distraction = Some(distractions);
             }

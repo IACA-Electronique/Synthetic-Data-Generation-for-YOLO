@@ -1,3 +1,4 @@
+use mockall::predicate::eq;
 use synthetic_data_generator_for_yolo::infrastructure::filesystem::MockFileSystem;
 use synthetic_data_generator_for_yolo::services::image_recipe_generator::{
     ImageRecipeGenerator, ImageRecipeGeneratorImpl,
@@ -16,12 +17,41 @@ fn build_generator() -> ImageRecipeGeneratorImpl {
     )
 }
 
+/// Builds a `MockFileSystem` that returns canned file lists for the
+/// background, object and distraction directories.
+fn mock_filesystem() -> MockFileSystem {
+    let mut filesystem = MockFileSystem::new();
+
+    filesystem
+        .expect_list_files()
+        .with(eq("backgrounds"))
+        .returning(|_| Ok(vec!["backgrounds/bg.png".to_string()]));
+
+    filesystem
+        .expect_list_files()
+        .with(eq("objects"))
+        .returning(|_| {
+            Ok(vec![
+                "objects/cat.png".to_string(),
+                "objects/dog.png".to_string(),
+            ])
+        });
+
+    filesystem
+        .expect_list_files()
+        .with(eq("distractions"))
+        .returning(|_| Ok(vec!["distractions/noise.png".to_string()]));
+
+    filesystem
+}
+
 #[test]
 fn generate_returns_requested_number_of_recipes() {
     let generator = build_generator();
+    let filesystem = mock_filesystem();
 
     let recipes = generator
-        .generate::<MockFileSystem>(4)
+        .generate(&filesystem, 4)
         .expect("generation should succeed");
 
     assert_eq!(recipes.len(), 4);
@@ -30,9 +60,12 @@ fn generate_returns_requested_number_of_recipes() {
 #[test]
 fn generate_with_zero_count_returns_empty_vec() {
     let generator = build_generator();
+    // No directory should be queried when nothing is generated.
+    let mut filesystem = MockFileSystem::new();
+    filesystem.expect_list_files().never();
 
     let recipes = generator
-        .generate::<MockFileSystem>(0)
+        .generate(&filesystem, 0)
         .expect("generation should succeed");
 
     assert!(recipes.is_empty());
@@ -41,9 +74,10 @@ fn generate_with_zero_count_returns_empty_vec() {
 #[test]
 fn generate_sets_image_dimensions() {
     let generator = build_generator();
+    let filesystem = mock_filesystem();
 
     let recipes = generator
-        .generate::<MockFileSystem>(2)
+        .generate(&filesystem, 2)
         .expect("generation should succeed");
 
     for recipe in &recipes {
@@ -53,22 +87,49 @@ fn generate_sets_image_dimensions() {
 }
 
 #[test]
-fn generate_sets_a_background_path() {
+fn generate_uses_background_returned_by_filesystem() {
     let generator = build_generator();
+    let filesystem = mock_filesystem();
 
     let recipes = generator
-        .generate::<MockFileSystem>(1)
+        .generate(&filesystem, 1)
         .expect("generation should succeed");
 
-    assert!(!recipes[0].background_path.is_empty());
+    assert_eq!(recipes[0].background_path, "backgrounds/bg.png");
+}
+
+#[test]
+fn generate_queries_background_directory() {
+    let generator = build_generator();
+    let mut filesystem = MockFileSystem::new();
+
+    // The background directory must be queried exactly once per image.
+    filesystem
+        .expect_list_files()
+        .with(eq("backgrounds"))
+        .times(1)
+        .returning(|_| Ok(vec!["backgrounds/bg.png".to_string()]));
+    filesystem
+        .expect_list_files()
+        .with(eq("objects"))
+        .returning(|_| Ok(vec!["objects/cat.png".to_string()]));
+    filesystem
+        .expect_list_files()
+        .with(eq("distractions"))
+        .returning(|_| Ok(vec!["distractions/noise.png".to_string()]));
+
+    generator
+        .generate(&filesystem, 1)
+        .expect("generation should succeed");
 }
 
 #[test]
 fn generate_sets_output_path_in_output_dir() {
     let generator = build_generator();
+    let filesystem = mock_filesystem();
 
     let recipes = generator
-        .generate::<MockFileSystem>(1)
+        .generate(&filesystem, 1)
         .expect("generation should succeed");
 
     assert!(recipes[0].output_path.starts_with("output/"));
@@ -78,9 +139,10 @@ fn generate_sets_output_path_in_output_dir() {
 #[test]
 fn generate_adds_objects_within_limit() {
     let generator = build_generator();
+    let filesystem = mock_filesystem();
 
     let recipes = generator
-        .generate::<MockFileSystem>(3)
+        .generate(&filesystem, 3)
         .expect("generation should succeed");
 
     for recipe in &recipes {
@@ -92,9 +154,10 @@ fn generate_adds_objects_within_limit() {
 #[test]
 fn generate_adds_distractions_when_distraction_dir_is_set() {
     let generator = build_generator();
+    let filesystem = mock_filesystem();
 
     let recipes = generator
-        .generate::<MockFileSystem>(2)
+        .generate(&filesystem, 2)
         .expect("generation should succeed");
 
     for recipe in &recipes {
@@ -117,9 +180,38 @@ fn generate_without_distraction_dir_leaves_distraction_none() {
         "output".to_string(),
     );
 
+    let mut filesystem = MockFileSystem::new();
+    filesystem
+        .expect_list_files()
+        .with(eq("backgrounds"))
+        .returning(|_| Ok(vec!["backgrounds/bg.png".to_string()]));
+    filesystem
+        .expect_list_files()
+        .with(eq("objects"))
+        .returning(|_| Ok(vec!["objects/cat.png".to_string()]));
+    // The distraction directory must never be queried when it is not configured.
+    filesystem
+        .expect_list_files()
+        .with(eq("distractions"))
+        .never();
+
     let recipes = generator
-        .generate::<MockFileSystem>(1)
+        .generate(&filesystem, 1)
         .expect("generation should succeed");
 
     assert!(recipes[0].distraction.is_none());
+}
+
+#[test]
+fn generate_propagates_filesystem_error() {
+    let generator = build_generator();
+    let mut filesystem = MockFileSystem::new();
+    filesystem
+        .expect_list_files()
+        .with(eq("backgrounds"))
+        .returning(|_| Err("boom".to_string()));
+
+    let result = generator.generate(&filesystem, 1);
+
+    assert_eq!(result, Err("boom".to_string()));
 }
