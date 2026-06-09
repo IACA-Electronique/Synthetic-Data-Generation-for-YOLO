@@ -19,6 +19,7 @@ fn build_generator() -> ImageRecipeGeneratorImpl {
 
 /// Builds a `MockFileSystem` that returns canned file lists for the
 /// background, object and distraction directories.
+/// Objects are organised in a single class sub-directory ("objects/0").
 fn mock_filesystem() -> MockFileSystem {
     let mut filesystem = MockFileSystem::new();
 
@@ -28,14 +29,24 @@ fn mock_filesystem() -> MockFileSystem {
         .returning(|_| Ok(vec!["backgrounds/bg.png".to_string()]));
 
     filesystem
-        .expect_list_files()
+        .expect_list_subdirectories()
         .with(eq("objects"))
+        .returning(|_| Ok(vec!["objects/0".to_string()]));
+
+    filesystem
+        .expect_list_files()
+        .with(eq("objects/0"))
         .returning(|_| {
             Ok(vec![
-                "objects/cat.png".to_string(),
-                "objects/dog.png".to_string(),
+                "objects/0/cat.png".to_string(),
+                "objects/0/dog.png".to_string(),
             ])
         });
+
+    filesystem
+        .expect_is_dir()
+        .with(eq("objects/0"))
+        .returning(|_| true);
 
     filesystem
         .expect_list_files()
@@ -110,9 +121,17 @@ fn generate_queries_background_directory() {
         .times(1)
         .returning(|_| Ok(vec!["backgrounds/bg.png".to_string()]));
     filesystem
-        .expect_list_files()
+        .expect_list_subdirectories()
         .with(eq("objects"))
-        .returning(|_| Ok(vec!["objects/cat.png".to_string()]));
+        .returning(|_| Ok(vec!["objects/0".to_string()]));
+    filesystem
+        .expect_list_files()
+        .with(eq("objects/0"))
+        .returning(|_| Ok(vec!["objects/0/cat.png".to_string()]));
+    filesystem
+        .expect_is_dir()
+        .with(eq("objects/0"))
+        .returning(|_| true);
     filesystem
         .expect_list_files()
         .with(eq("distractions"))
@@ -186,9 +205,17 @@ fn generate_without_distraction_dir_leaves_distraction_none() {
         .with(eq("backgrounds"))
         .returning(|_| Ok(vec!["backgrounds/bg.png".to_string()]));
     filesystem
-        .expect_list_files()
+        .expect_list_subdirectories()
         .with(eq("objects"))
-        .returning(|_| Ok(vec!["objects/cat.png".to_string()]));
+        .returning(|_| Ok(vec!["objects/0".to_string()]));
+    filesystem
+        .expect_list_files()
+        .with(eq("objects/0"))
+        .returning(|_| Ok(vec!["objects/0/cat.png".to_string()]));
+    filesystem
+        .expect_is_dir()
+        .with(eq("objects/0"))
+        .returning(|_| true);
     // The distraction directory must never be queried when it is not configured.
     filesystem
         .expect_list_files()
@@ -214,4 +241,69 @@ fn generate_propagates_filesystem_error() {
     let result = generator.generate(&filesystem, 1);
 
     assert_eq!(result, Err("boom".to_string()));
+}
+
+#[test]
+fn generate_picks_object_directly_when_no_sub_dir_class_exists() {
+    // When list_subdirectories returns an empty vec, the generator should fall
+    // back to picking files directly from the object directory (single-class mode).
+    let generator = build_generator();
+    let mut filesystem = MockFileSystem::new();
+
+    filesystem
+        .expect_list_files()
+        .with(eq("backgrounds"))
+        .returning(|_| Ok(vec!["backgrounds/bg.png".to_string()]));
+
+    filesystem
+        .expect_list_subdirectories()
+        .with(eq("objects"))
+        .returning(|_| Ok(vec![])); // no sub-directories
+
+    filesystem
+        .expect_list_files()
+        .with(eq("objects"))
+        .returning(|_| Ok(vec!["objects/cat.png".to_string()]));
+
+    filesystem
+        .expect_list_files()
+        .with(eq("distractions"))
+        .returning(|_| Ok(vec!["distractions/noise.png".to_string()]));
+
+    let recipes = generator
+        .generate(&filesystem, 1)
+        .expect("generation should succeed");
+
+    assert!(!recipes[0].object.is_empty());
+    // In single-class fallback the class id defaults to 0.
+    for obj in &recipes[0].object {
+        assert_eq!(obj.id, 0);
+    }
+}
+
+#[test]
+fn generate_error_when_sub_dir_class_does_not_exist() {
+    // When list_subdirectories returns sub-dirs but is_dir returns false for the
+    // chosen class path, the generator should propagate an error.
+    let generator = build_generator();
+    let mut filesystem = MockFileSystem::new();
+
+    filesystem
+        .expect_list_files()
+        .with(eq("backgrounds"))
+        .returning(|_| Ok(vec!["backgrounds/bg.png".to_string()]));
+
+    filesystem
+        .expect_list_subdirectories()
+        .with(eq("objects"))
+        .returning(|_| Ok(vec!["objects/0".to_string()]));
+
+    // The class directory does not actually exist.
+    filesystem
+        .expect_is_dir()
+        .returning(|_| false);
+
+    let result = generator.generate(&filesystem, 1);
+
+    assert!(result.is_err());
 }
