@@ -7,6 +7,7 @@ pub trait FileSystem {
     fn list_subdirectories(&self, directory: &str) -> Result<Vec<String>, String>;
     fn is_dir(&self, directory: &str) -> bool;
     fn write_text(&self, output_path: &str, content: &str) -> Result<(), String>;
+    fn create_dir(&self, directory: &str) -> Result<(), String>;
 }
 
 #[derive(Default)]
@@ -55,5 +56,9 @@ impl FileSystem for SimpleFileSystem {
 
     fn write_text(&self, output_path: &str, content: &str) -> Result<(), String> {
         fs::write(output_path, content).map_err(|e| e.to_string())
+    }
+
+    fn create_dir(&self, directory: &str) -> Result<(), String> {
+        fs::create_dir(directory).map_err(|e| e.to_string())
     }
 }
