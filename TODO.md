@@ -9,6 +9,7 @@
 - [ ] At the end of the program, add a summary of the generated files
 - [ ] At the end of the program, add a warning to remind the user to update dataset.yaml according to their specifications
 - [ ] Improve progress logging
+- [ ] Handle the case when the output directory already exists, add a flag to overwrite (-f). By default, do not overwrite and quit.
 
 ## 1.x
 
