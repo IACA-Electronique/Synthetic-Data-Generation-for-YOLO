@@ -17,5 +17,5 @@ target
 Cargo.lock
 
 # Custom
-
 sandbox
+.tmp/
