@@ -9,6 +9,7 @@ fn test_new_with_valid_base_dir_returns_correct_paths() {
     assert_eq!(config.get_images_train_dir_path(), "/data/images/train");
     assert_eq!(config.get_images_val_dir_path(), "/data/images/val");
     assert_eq!(config.get_images_test_dir_path(), "/data/images/test");
+    assert_eq!(config.get_labels_dir_path(), "/data/labels");
     assert_eq!(config.get_labels_train_dir_path(), "/data/labels/train");
     assert_eq!(config.get_labels_val_dir_path(), "/data/labels/val");
     assert_eq!(config.get_labels_test_dir_path(), "/data/labels/test");
