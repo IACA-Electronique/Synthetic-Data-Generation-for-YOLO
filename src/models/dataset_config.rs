@@ -11,12 +11,44 @@ pub trait DatasetConfig {
     fn get_labels_val_dir_path(&self) -> String;
 }
 
+/// Yolo dataset configuration for object detection with bounding boxes (OBB).
+///
+///  * `base_dir`: The base directory containing the dataset. Panic if empty.
+///
+/// Structure of the dataset:
+/// ```text
+/// base_dir/
+/// ├── dataset.yaml
+/// ├── images/
+/// │   ├── train/
+/// │   │   ├── img1.jpg
+/// │   │   └── img2.jpg
+/// │   ├── val/
+/// │   │   ├── img101.jpg
+/// │   │   └── img102.jpg
+/// │   └── test/
+/// │       ├── img201.jpg
+/// │       └── img202.jpg
+/// └── labels/
+///     ├── train/
+///     │   ├── img1.txt  # Contains 9-value lines for OBB
+///     │   └── img2.txt
+///     ├── val/
+///     │   ├── img101.txt
+///     │   └── img102.txt
+///     └── test/
+///         ├── img201.txt
+///         └── img202.txt
+/// ```
 pub struct YOLOObbDatasetConfig {
     base_dir: String,
 }
 
 impl YOLOObbDatasetConfig {
     pub fn new(base_dir: String) -> Self {
+        if base_dir.is_empty() {
+            panic!("Base directory cannot be empty");
+        }
         Self { base_dir }
     }
 }
