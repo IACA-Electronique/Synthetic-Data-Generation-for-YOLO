@@ -3,7 +3,7 @@
 ## 0.1
 
 - [x] Add dataset.yaml generator
-- [ ] Add dataset OBB format generation
+- [x] Add dataset OBB format generation
 - [ ] Update usage in README.md
 - [ ] At the end of the program, add a summary of the generated files
 - [ ] At the end of the program, add a warning to remind the user to update dataset.yaml according to their specifications
