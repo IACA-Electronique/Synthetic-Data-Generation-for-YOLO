@@ -8,6 +8,7 @@ fn setup_full_config_mock() -> MockDatasetConfig {
     let mut mock = MockDatasetConfig::new();
     mock.expect_get_base_dir().returning(|| "/dataset".to_string());
     mock.expect_get_images_dir_path().returning(|| "/dataset/images".to_string());
+    mock.expect_get_labels_dir_path().returning(|| "/dataset/labels".to_string());
     mock.expect_get_images_train_dir_path().returning(|| "/dataset/images/train".to_string());
     mock.expect_get_images_val_dir_path().returning(|| "/dataset/images/val".to_string());
     mock.expect_get_images_test_dir_path().returning(|| "/dataset/images/test".to_string());
@@ -25,6 +26,7 @@ fn test_generate_structure_creates_all_directories() {
     for path in [
         "/dataset",
         "/dataset/images",
+        "/dataset/labels",
         "/dataset/images/train",
         "/dataset/images/val",
         "/dataset/images/test",
@@ -92,6 +94,7 @@ fn test_generate_structure_returns_error_when_last_dir_creation_fails() {
     let mut mock_config = MockDatasetConfig::new();
     mock_config.expect_get_base_dir().returning(|| "/dataset".to_string());
     mock_config.expect_get_images_dir_path().returning(|| "/dataset/images".to_string());
+    mock_config.expect_get_labels_dir_path().returning(|| "/dataset/labels".to_string());
     mock_config.expect_get_images_train_dir_path().returning(|| "/dataset/images/train".to_string());
     mock_config.expect_get_images_val_dir_path().returning(|| "/dataset/images/val".to_string());
     mock_config.expect_get_images_test_dir_path().returning(|| "/dataset/images/test".to_string());
@@ -103,6 +106,7 @@ fn test_generate_structure_returns_error_when_last_dir_creation_fails() {
     for path in [
         "/dataset",
         "/dataset/images",
+        "/dataset/labels",
         "/dataset/images/train",
         "/dataset/images/val",
         "/dataset/images/test",

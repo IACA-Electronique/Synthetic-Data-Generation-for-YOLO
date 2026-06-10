@@ -33,6 +33,9 @@ impl<'a, FS: FileSystem, C: DatasetConfig> DatasetDirectoryStructureGenerator fo
         self.filesystem.create_dir(&self.dataset_config.get_images_test_dir_path())
             .map_err(|e| format!("Failed to create images test directory: {}", e))?;
 
+        self.filesystem.create_dir(&self.dataset_config.get_labels_dir_path())
+            .map_err(|e| format!("Failed to create labels directory: {}", e))?;
+        
         self.filesystem.create_dir(&self.dataset_config.get_labels_train_dir_path())
             .map_err(|e| format!("Failed to create labels train directory: {}", e))?;
 

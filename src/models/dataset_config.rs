@@ -8,6 +8,7 @@ pub trait DatasetConfig {
     fn get_images_train_dir_path(&self) -> String;
     fn get_images_val_dir_path(&self) -> String;
     fn get_images_test_dir_path(&self) -> String;
+    fn get_labels_dir_path(&self) -> String;
     fn get_labels_test_dir_path(&self) -> String;
     fn get_labels_train_dir_path(&self) -> String;
     fn get_labels_val_dir_path(&self) -> String;
@@ -83,6 +84,9 @@ impl DatasetConfig for YOLOObbDatasetConfig {
     fn get_images_test_dir_path(&self) -> String {
         format!("{}/images/test", self.base_dir)
     }
+    fn get_labels_dir_path(&self) -> String {
+        format!("{}/labels", self.base_dir)
+    }
 
     fn get_labels_test_dir_path(&self) -> String {
         format!("{}/labels/test", self.base_dir)
@@ -107,7 +111,7 @@ impl DatasetConfig for YOLOObbDatasetConfig {
     fn get_dataset_yaml_test_path(&self) -> String {
         String::from("images/test")
     }
-    
+
     fn get_base_dir(&self) -> String {
         self.base_dir.clone()
     }
