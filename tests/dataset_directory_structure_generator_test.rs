@@ -40,12 +40,11 @@ fn test_generate_structure_creates_all_directories() {
     }
 
     let generator = DatasetDirectoryStructureGeneratorImpl::new(&mock_config, &mock_fs);
-    generator.generate_structure();
+    assert!(generator.generate_structure().is_ok());
 }
 
 #[test]
-#[should_panic(expected = "Failed to create base directory")]
-fn test_generate_structure_panics_when_base_dir_creation_fails() {
+fn test_generate_structure_returns_error_when_base_dir_creation_fails() {
     let mut mock_config = MockDatasetConfig::new();
     mock_config.expect_get_base_dir().returning(|| "/dataset".to_string());
 
@@ -57,12 +56,14 @@ fn test_generate_structure_panics_when_base_dir_creation_fails() {
         .returning(|_| Err("permission denied".to_string()));
 
     let generator = DatasetDirectoryStructureGeneratorImpl::new(&mock_config, &mock_fs);
-    generator.generate_structure();
+    let result = generator.generate_structure();
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "Failed to create base directory: permission denied");
 }
 
 #[test]
-#[should_panic(expected = "Failed to create images directory")]
-fn test_generate_structure_panics_when_images_dir_creation_fails() {
+fn test_generate_structure_returns_error_when_images_dir_creation_fails() {
     let mut mock_config = MockDatasetConfig::new();
     mock_config.expect_get_base_dir().returning(|| "/dataset".to_string());
     mock_config.expect_get_images_dir_path().returning(|| "/dataset/images".to_string());
@@ -80,12 +81,14 @@ fn test_generate_structure_panics_when_images_dir_creation_fails() {
         .returning(|_| Err("disk full".to_string()));
 
     let generator = DatasetDirectoryStructureGeneratorImpl::new(&mock_config, &mock_fs);
-    generator.generate_structure();
+    let result = generator.generate_structure();
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "Failed to create images directory: disk full");
 }
 
 #[test]
-#[should_panic(expected = "Failed to create labels test directory")]
-fn test_generate_structure_panics_when_last_dir_creation_fails() {
+fn test_generate_structure_returns_error_when_last_dir_creation_fails() {
     let mut mock_config = MockDatasetConfig::new();
     mock_config.expect_get_base_dir().returning(|| "/dataset".to_string());
     mock_config.expect_get_images_dir_path().returning(|| "/dataset/images".to_string());
@@ -119,5 +122,8 @@ fn test_generate_structure_panics_when_last_dir_creation_fails() {
         .returning(|_| Err("no space left".to_string()));
 
     let generator = DatasetDirectoryStructureGeneratorImpl::new(&mock_config, &mock_fs);
-    generator.generate_structure();
+    let result = generator.generate_structure();
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "Failed to create labels test directory: no space left");
 }
