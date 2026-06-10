@@ -31,6 +31,15 @@ struct Args {
 
     #[arg(long, short = 'c', required = true)]
     count: Option<u32>,
+
+    #[arg(long, default_value = "80")]
+    train_ratio: usize,
+
+    #[arg(long, default_value = "10")]
+    val_ratio: usize,
+
+    #[arg(long, default_value = "10")]
+    test_ratio: usize,
 }
 
 struct App {
