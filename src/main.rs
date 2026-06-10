@@ -3,6 +3,7 @@ use std::path::Path;
 use std::process::ExitCode;
 use synthetic_data_generator_for_yolo::infrastructure::editable_image::ImageEditableImage;
 use synthetic_data_generator_for_yolo::infrastructure::filesystem::SimpleFileSystem;
+use synthetic_data_generator_for_yolo::models::dataset_config::YOLOObbDatasetConfig;
 use synthetic_data_generator_for_yolo::services::dataset_yaml_generator::{DatasetYamlGenerator, DatasetYamlGeneratorImpl};
 use synthetic_data_generator_for_yolo::services::image_generator::{ImageGenerator, ImageGeneratorImpl};
 use synthetic_data_generator_for_yolo::services::image_recipe_generator::{ImageRecipeGenerator, ImageRecipeGeneratorImpl};
@@ -52,7 +53,8 @@ impl App {
 
         let file_system = SimpleFileSystem::new();
 
-        let yaml_generator = DatasetYamlGeneratorImpl::new(self.args.output_dir.clone(), &file_system);
+        let dataset_config = YOLOObbDatasetConfig::new(self.args.output_dir.clone());
+        let yaml_generator = DatasetYamlGeneratorImpl::new(&dataset_config, &file_system);
         let yaml_filepath = yaml_generator.generate_yaml()?;
         println!("Dataset YAML file generated at {}", yaml_filepath);
 
