@@ -12,6 +12,10 @@ fn test_new_with_valid_base_dir_returns_correct_paths() {
     assert_eq!(config.get_labels_train_dir_path(), "/data/labels/train");
     assert_eq!(config.get_labels_val_dir_path(), "/data/labels/val");
     assert_eq!(config.get_labels_test_dir_path(), "/data/labels/test");
+    assert_eq!(config.get_dataset_yaml_train_path(), "images/train");
+    assert_eq!(config.get_dataset_yaml_val_path(), "images/val");
+    assert_eq!(config.get_dataset_yaml_test_path(), "images/test");
+    assert_eq!(config.get_base_dir(), "/data");
 }
 
 #[test]
