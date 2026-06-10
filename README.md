@@ -28,13 +28,19 @@ program \
 
 > Object directory should contain images of the objects you want to detect in YOLO format (JPEG or PNG). Place each category of objects in its own subfolder (e.g., `object_dir/vehicle`, `object_dir/person`, etc.).
 
-## Tests
+## 🧪 Tests
 
 ```bash
 cargo test -- --test-threads=1
 ```
 
 > Because the test implementation uses Mockall context overrides, it must run on a single thread to prevent interference between test cases.
+
+## 🤖 AI Assistance
+
+AI assistance guidelines are defined in [.ai/RULES.md](.ai/RULES.md).
+
+This project uses Claude, which reads instructions from `CLAUDE.md`. To avoid duplicating the same rules across multiple AI context files, each context file should only reference the shared rules file.
 
 ## 📜 License
 
