@@ -1,6 +1,7 @@
 
 
 pub trait DatasetConfig {
+    fn from_base_dir(base_dir: String) -> Self;
     fn get_dataset_yaml_path(&self) -> String;
     fn get_images_dir_path(&self) -> String;
     fn get_images_train_dir_path(&self) -> String;
@@ -54,6 +55,10 @@ impl YOLOObbDatasetConfig {
 }
 
 impl DatasetConfig for YOLOObbDatasetConfig {
+    fn from_base_dir(base_dir: String) -> Self {
+        Self::new(base_dir)
+    }
+
     fn get_dataset_yaml_path(&self) -> String {
         format!("{}/dataset.yaml", self.base_dir)
     }
