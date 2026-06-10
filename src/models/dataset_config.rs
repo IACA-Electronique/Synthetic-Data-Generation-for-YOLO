@@ -1,5 +1,6 @@
+use mockall::automock;
 
-
+#[automock]
 pub trait DatasetConfig {
     fn from_base_dir(base_dir: String) -> Self;
     fn get_dataset_yaml_path(&self) -> String;
@@ -10,6 +11,10 @@ pub trait DatasetConfig {
     fn get_labels_test_dir_path(&self) -> String;
     fn get_labels_train_dir_path(&self) -> String;
     fn get_labels_val_dir_path(&self) -> String;
+    fn get_dataset_yaml_train_path(&self) -> String;
+    fn get_dataset_yaml_val_path(&self) -> String;
+    fn get_dataset_yaml_test_path(&self) -> String;
+    fn get_base_dir(&self) -> String;
 }
 
 /// Yolo dataset configuration for object detection with bounding boxes (OBB).
@@ -89,5 +94,21 @@ impl DatasetConfig for YOLOObbDatasetConfig {
 
     fn get_labels_val_dir_path(&self) -> String {
         format!("{}/labels/val", self.base_dir)
+    }
+
+    fn get_dataset_yaml_train_path(&self) -> String {
+        String::from("images/train")
+    }
+
+    fn get_dataset_yaml_val_path(&self) -> String {
+        String::from("images/val")
+    }
+
+    fn get_dataset_yaml_test_path(&self) -> String {
+        String::from("images/test")
+    }
+    
+    fn get_base_dir(&self) -> String {
+        self.base_dir.clone()
     }
 }
