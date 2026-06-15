@@ -53,7 +53,10 @@ impl App {
     }
 
     async fn run(&self) -> Result<(), String> {
+        let file_system = SimpleFileSystem::new();
+
         let recipes_generator = ImageRecipeGeneratorImpl::new(
+            &file_system,
             self.args.background_dir.clone(),
             self.args.object_dir.clone(),
             self.args.distraction_dir.clone(),
@@ -61,8 +64,6 @@ impl App {
             1024,
             self.args.output_dir.clone(),
         );
-
-        let file_system = SimpleFileSystem::new();
 
         let dataset_config = YOLOObbDatasetConfig::new(self.args.output_dir.clone());
 
@@ -75,7 +76,7 @@ impl App {
         println!("Dataset YAML file generated at {}", yaml_filepath);
 
         println!("Generating {} recipes images...", self.args.count.unwrap());
-        let recipes = recipes_generator.generate(&file_system, self.args.count.unwrap())?;
+        let recipes = recipes_generator.generate(self.args.count.unwrap())?;
 
         let output_dir = Path::new(&self.args.output_dir);
         if !output_dir.exists() {
