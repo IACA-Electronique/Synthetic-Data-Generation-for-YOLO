@@ -1,7 +1,9 @@
+use mockall::automock;
 use crate::infrastructure::filesystem::FileSystem;
 use crate::models::image_recipe::ImageRecipe;
 use crate::utils::geometry::center_and_angle_to_four_points;
 
+#[automock]
 pub trait LabelGenerator {
     fn generate_one(&self, recipe: ImageRecipe, output_dir: String) -> Result<(), String>;
 }

@@ -9,6 +9,7 @@ use synthetic_data_generator_for_yolo::services::dataset_directory_structure_gen
 use synthetic_data_generator_for_yolo::services::dataset_yaml_generator::{DatasetYamlGenerator, DatasetYamlGeneratorImpl};
 use synthetic_data_generator_for_yolo::services::image_generator::ImageGeneratorImpl;
 use synthetic_data_generator_for_yolo::services::image_recipe_generator::ImageRecipeGeneratorImpl;
+use synthetic_data_generator_for_yolo::services::label_generator::ObbYoloV11LabelGenerator;
 use synthetic_data_generator_for_yolo::settings::VERSION;
 
 #[derive(Parser)]
@@ -79,13 +80,16 @@ impl App {
             std::fs::create_dir_all(output_dir).map_err(|e| e.to_string())?;
         }
 
-        let generator = ImageGeneratorImpl::<EditableImageBuilderImpl>::new();
-
+        let image_generator = ImageGeneratorImpl::<EditableImageBuilderImpl>::new();
+        let label_generator = ObbYoloV11LabelGenerator::new(
+            &file_system
+        );
         println!("Generating {} images...", self.args.count.unwrap());
         let orchestrator =
-            MultiThreadDataGeneratorOrchestrator::<_,_,_,SimpleFileSystem>::new(
+            MultiThreadDataGeneratorOrchestrator::<_,_,_,_,SimpleFileSystem>::new(
                 &recipes_generator,
-                &generator,
+                &image_generator,
+                &label_generator,
                 &dataset_config);
         orchestrator.generate_images(self.args.count.unwrap(), self.args.train_ratio, self.args.val_ratio, self.args.test_ratio)?;
 
