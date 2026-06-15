@@ -9,6 +9,8 @@ fn make_recipe(name: &str, objects: Vec<PrintableElementRecipe>) -> ImageRecipe 
     let mut recipe = ImageRecipe::new();
     recipe.name = name.to_string();
     recipe.object = objects;
+    recipe.width = 1;
+    recipe.height = 1;
     recipe
 }
 
