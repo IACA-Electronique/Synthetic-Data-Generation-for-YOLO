@@ -1,7 +1,9 @@
+use mockall::automock;
 use crate::infrastructure::filesystem::FileSystem;
 use crate::models::image_recipe::{ImageRecipe, PrintableElementRecipe};
 use rand::Rng;
 
+#[automock]
 pub trait ImageRecipeGenerator {
     fn generate(
         &self,
