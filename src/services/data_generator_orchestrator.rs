@@ -35,6 +35,18 @@ impl<'a, R: ImageRecipeGenerator, I: ImageGenerator, C: DatasetConfig, FS: FileS
             Ok((train_recipes.to_vec(), val_recipes.to_vec(), test_recipes.to_vec()))
         }
     }
+
+    pub fn get_output_dir_path_from_datatype(&self, datatype: DataType) -> String {
+        let output_dir_path: String;
+        if datatype == DataType::TRAIN {
+            output_dir_path = self.dataset_config.get_images_train_dir_path().to_string();
+        } else if datatype == DataType::VAL {
+            output_dir_path = self.dataset_config.get_images_val_dir_path().to_string();
+        } else {
+            output_dir_path = self.dataset_config.get_images_test_dir_path().to_string();
+        }
+        output_dir_path
+    }
 }
 
 impl<'a, R: ImageRecipeGenerator, I: ImageGenerator, C: DatasetConfig, FS: FileSystem> DataGeneratorOrchestrator for MultiThreadDataGeneratorOrchestrator<'a, R, I, C, FS> {

@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 use synthetic_data_generator_for_yolo::infrastructure::filesystem::MockFileSystem;
 use synthetic_data_generator_for_yolo::models::dataset_config::MockDatasetConfig;
 use synthetic_data_generator_for_yolo::models::image_recipe::ImageRecipe;
-use synthetic_data_generator_for_yolo::services::data_generator_orchestrator::MultiThreadDataGeneratorOrchestrator;
+use synthetic_data_generator_for_yolo::services::data_generator_orchestrator::{DataType, MultiThreadDataGeneratorOrchestrator};
 use synthetic_data_generator_for_yolo::services::image_generator::MockImageGenerator;
 use synthetic_data_generator_for_yolo::services::image_recipe_generator::MockImageRecipeGenerator;
 
@@ -94,4 +94,38 @@ fn split_recipes_returns_error_when_dataset_is_too_small_for_given_ratios() {
     let result = build_orch().split_recipes(recipes, 80, 10);
 
     assert!(result.is_err());
+}
+
+// ------------------------------------------------------------------------------------------------
+// get_output_dir_path_from_datatype
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn get_output_dir_path_from_datatype_returns_train_path() {
+    let mut dc = MockDatasetConfig::new();
+    dc.expect_get_images_train_dir_path().return_const("/data/images/train".to_string());
+
+    let orch = MultiThreadDataGeneratorOrchestrator::new(&*IGG, &*IG, &dc, &*FS);
+
+    assert_eq!(orch.get_output_dir_path_from_datatype(DataType::TRAIN), "/data/images/train");
+}
+
+#[test]
+fn get_output_dir_path_from_datatype_returns_val_path() {
+    let mut dc = MockDatasetConfig::new();
+    dc.expect_get_images_val_dir_path().return_const("/data/images/val".to_string());
+
+    let orch = MultiThreadDataGeneratorOrchestrator::new(&*IGG, &*IG, &dc, &*FS);
+
+    assert_eq!(orch.get_output_dir_path_from_datatype(DataType::VAL), "/data/images/val");
+}
+
+#[test]
+fn get_output_dir_path_from_datatype_returns_test_path() {
+    let mut dc = MockDatasetConfig::new();
+    dc.expect_get_images_test_dir_path().return_const("/data/images/test".to_string());
+
+    let orch = MultiThreadDataGeneratorOrchestrator::new(&*IGG, &*IG, &dc, &*FS);
+
+    assert_eq!(orch.get_output_dir_path_from_datatype(DataType::TEST), "/data/images/test");
 }
