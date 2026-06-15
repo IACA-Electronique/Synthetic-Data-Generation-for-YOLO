@@ -20,7 +20,7 @@ fn build_orch(
     MockDatasetConfig,
     MockFileSystem,
 > {
-    MultiThreadDataGeneratorOrchestrator::new(&IGG, &IG, &DC, &FS)
+    MultiThreadDataGeneratorOrchestrator::new(&IGG, &IG, &DC)
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -105,7 +105,7 @@ fn get_output_dir_path_from_datatype_returns_train_path() {
     let mut dc = MockDatasetConfig::new();
     dc.expect_get_images_train_dir_path().return_const("/data/images/train".to_string());
 
-    let orch = MultiThreadDataGeneratorOrchestrator::new(&*IGG, &*IG, &dc, &*FS);
+    let orch = MultiThreadDataGeneratorOrchestrator::<_,_,_,MockFileSystem>::new(&*IGG, &*IG, &dc);
 
     assert_eq!(orch.get_output_dir_path_from_datatype(DataType::TRAIN), "/data/images/train");
 }
@@ -115,7 +115,7 @@ fn get_output_dir_path_from_datatype_returns_val_path() {
     let mut dc = MockDatasetConfig::new();
     dc.expect_get_images_val_dir_path().return_const("/data/images/val".to_string());
 
-    let orch = MultiThreadDataGeneratorOrchestrator::new(&*IGG, &*IG, &dc, &*FS);
+    let orch = MultiThreadDataGeneratorOrchestrator::<_,_,_,MockFileSystem>::new(&*IGG, &*IG, &dc);
 
     assert_eq!(orch.get_output_dir_path_from_datatype(DataType::VAL), "/data/images/val");
 }
@@ -125,7 +125,7 @@ fn get_output_dir_path_from_datatype_returns_test_path() {
     let mut dc = MockDatasetConfig::new();
     dc.expect_get_images_test_dir_path().return_const("/data/images/test".to_string());
 
-    let orch = MultiThreadDataGeneratorOrchestrator::new(&*IGG, &*IG, &dc, &*FS);
+    let orch = MultiThreadDataGeneratorOrchestrator::<_,_,_,MockFileSystem>::new(&*IGG, &*IG, &dc);
 
     assert_eq!(orch.get_output_dir_path_from_datatype(DataType::TEST), "/data/images/test");
 }

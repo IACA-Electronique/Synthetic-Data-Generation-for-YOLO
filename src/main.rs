@@ -4,10 +4,11 @@ use std::process::ExitCode;
 use synthetic_data_generator_for_yolo::infrastructure::builders::editable_image_builder::EditableImageBuilderImpl;
 use synthetic_data_generator_for_yolo::infrastructure::filesystem::SimpleFileSystem;
 use synthetic_data_generator_for_yolo::models::dataset_config::YOLOObbDatasetConfig;
+use synthetic_data_generator_for_yolo::services::data_generator_orchestrator::{DataGeneratorOrchestrator, MultiThreadDataGeneratorOrchestrator};
 use synthetic_data_generator_for_yolo::services::dataset_directory_structure_generator::{DatasetDirectoryStructureGenerator, DatasetDirectoryStructureGeneratorImpl};
 use synthetic_data_generator_for_yolo::services::dataset_yaml_generator::{DatasetYamlGenerator, DatasetYamlGeneratorImpl};
-use synthetic_data_generator_for_yolo::services::image_generator::{ImageGenerator, ImageGeneratorImpl};
-use synthetic_data_generator_for_yolo::services::image_recipe_generator::{ImageRecipeGenerator, ImageRecipeGeneratorImpl};
+use synthetic_data_generator_for_yolo::services::image_generator::ImageGeneratorImpl;
+use synthetic_data_generator_for_yolo::services::image_recipe_generator::ImageRecipeGeneratorImpl;
 use synthetic_data_generator_for_yolo::settings::VERSION;
 
 #[derive(Parser)]
@@ -73,17 +74,20 @@ impl App {
         let yaml_filepath = yaml_generator.generate_yaml()?;
         println!("Dataset YAML file generated at {}", yaml_filepath);
 
-        println!("Generating {} recipes images...", self.args.count.unwrap());
-        let recipes = recipes_generator.generate(self.args.count.unwrap())?;
-
         let output_dir = Path::new(&self.args.output_dir);
         if !output_dir.exists() {
             std::fs::create_dir_all(output_dir).map_err(|e| e.to_string())?;
         }
 
-        println!("Generating {} images...", self.args.count.unwrap());
         let generator = ImageGeneratorImpl::<EditableImageBuilderImpl>::new();
-        generator.generate(recipes, self.args.output_dir.to_string())?;
+
+        println!("Generating {} images...", self.args.count.unwrap());
+        let orchestrator =
+            MultiThreadDataGeneratorOrchestrator::<_,_,_,SimpleFileSystem>::new(
+                &recipes_generator,
+                &generator,
+                &dataset_config);
+        orchestrator.generate_images(self.args.count.unwrap(), self.args.train_ratio, self.args.val_ratio, self.args.test_ratio)?;
 
         Ok(())
     }
