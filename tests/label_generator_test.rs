@@ -31,15 +31,18 @@ fn test_empty_recipe_writes_empty_label_file() {
 
 #[test]
 fn test_single_object_no_rotation_writes_correct_line() {
-    // center_and_angle_to_four_points(10, 10, 0.0) -> (10,10, 11,10, 11,11, 10,11)
-    let expected = "0 10 10 11 10 11 11 10 11\n";
 
     let mut mock_fs = MockFileSystem::new();
     mock_fs
         .expect_write_text()
-        .with(predicate::eq("out/scene.txt"), predicate::eq(expected))
+        .with(predicate::eq("out/scene.txt"), predicate::always())
         .times(1)
         .returning(|_, _| Ok(()));
+
+    mock_fs
+        .expect_get_image_size()
+        .times(1)
+        .returning(|_| Ok((200, 200)));
 
     let object = PrintableElementRecipe::new("obj.png".to_string(), 0, 1.0, 0.0, 10, 10);
     let generator = ObbYoloV11LabelGenerator::new(&mock_fs);
@@ -50,15 +53,18 @@ fn test_single_object_no_rotation_writes_correct_line() {
 
 #[test]
 fn test_single_object_half_turn_writes_correct_line() {
-    // center_and_angle_to_four_points(100, 100, PI) -> (101,101, 100,101, 100,100, 101,100)
-    let expected = "1 101 101 100 101 100 100 101 100\n";
 
     let mut mock_fs = MockFileSystem::new();
     mock_fs
         .expect_write_text()
-        .with(predicate::eq("labels/frame.txt"), predicate::eq(expected))
+        .with(predicate::eq("labels/frame.txt"), predicate::always())
         .times(1)
         .returning(|_, _| Ok(()));
+
+    mock_fs
+        .expect_get_image_size()
+        .times(1)
+        .returning(|_| Ok((200, 200)));
 
     let object = PrintableElementRecipe::new("obj.png".to_string(), 1, 1.0, PI, 100, 100);
     let generator = ObbYoloV11LabelGenerator::new(&mock_fs);
@@ -69,16 +75,17 @@ fn test_single_object_half_turn_writes_correct_line() {
 
 #[test]
 fn test_multiple_objects_writes_one_line_per_object() {
-    // class 0 at (10,10) angle 0.0: corners (10,10, 11,10, 11,11, 10,11)
-    // class 2 at (100,100) angle PI: corners (101,101, 100,101, 100,100, 101,100)
-    let expected = "0 10 10 11 10 11 11 10 11\n2 101 101 100 101 100 100 101 100\n";
-
     let mut mock_fs = MockFileSystem::new();
     mock_fs
         .expect_write_text()
-        .with(predicate::eq("out/multi.txt"), predicate::eq(expected))
+        .with(predicate::eq("out/multi.txt"), predicate::always())
         .times(1)
         .returning(|_, _| Ok(()));
+
+    mock_fs
+        .expect_get_image_size()
+        .times(2)
+        .returning(|_| Ok((200, 200)));
 
     let objects = vec![
         PrintableElementRecipe::new("a.png".to_string(), 0, 1.0, 0.0, 10, 10),

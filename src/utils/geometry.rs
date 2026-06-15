@@ -24,11 +24,14 @@ pub fn normalize_four_points(
 pub fn center_and_angle_to_four_points(
     x: u32,
     y: u32,
+    w: u32,
+    h: u32,
     angle: f32,
 ) -> (u32, u32, u32, u32, u32, u32, u32, u32) {
     let cx = x as f32;
     let cy = y as f32;
-    let half = 0.5_f32;
+    let half_w = w as f32 / 2.0;
+    let half_h = h as f32 / 2.0;
 
     let cos_a = angle.cos();
     let sin_a = angle.sin();
@@ -39,10 +42,10 @@ pub fn center_and_angle_to_four_points(
         (rx.round() as u32, ry.round() as u32)
     };
 
-    let (x1, y1) = rotate(-half, -half);
-    let (x2, y2) = rotate(half, -half);
-    let (x3, y3) = rotate(half, half);
-    let (x4, y4) = rotate(-half, half);
+    let (x1, y1) = rotate(-half_w, -half_h);
+    let (x2, y2) = rotate(half_w, -half_h);
+    let (x3, y3) = rotate(half_w, half_h);
+    let (x4, y4) = rotate(-half_w, half_h);
 
     (x1, y1, x2, y2, x3, y3, x4, y4)
 }

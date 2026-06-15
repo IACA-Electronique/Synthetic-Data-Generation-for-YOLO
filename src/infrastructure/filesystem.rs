@@ -8,6 +8,7 @@ pub trait FileSystem {
     fn is_dir(&self, directory: &str) -> bool;
     fn write_text(&self, output_path: &str, content: &str) -> Result<(), String>;
     fn create_dir(&self, directory: &str) -> Result<(), String>;
+    fn get_image_size(&self, image_path: &str) -> Result<(u32, u32), String>;
 }
 
 #[derive(Default)]
@@ -60,5 +61,10 @@ impl FileSystem for SimpleFileSystem {
 
     fn create_dir(&self, directory: &str) -> Result<(), String> {
         fs::create_dir(directory).map_err(|e| e.to_string())
+    }
+
+    fn get_image_size(&self, image_path: &str) -> Result<(u32, u32), String> {
+        let image = image::open(image_path).map_err(|e| e.to_string())?;
+        Ok((image.width(), image.height()))
     }
 }

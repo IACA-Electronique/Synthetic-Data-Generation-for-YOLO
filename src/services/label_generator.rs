@@ -22,9 +22,12 @@ impl<'a, FS: FileSystem> LabelGenerator for ObbYoloV11LabelGenerator<'_, FS> {
     fn generate_one(&self, recipe: ImageRecipe, output_dir: String) -> Result<(), String> {
         let mut label = String::new();
         for object in recipe.object {
+            let (w, h) = self.filesystem.get_image_size(&object.path)?;
             let (x1, y1, x2, y2, x3, y3, x4, y4) = center_and_angle_to_four_points(
                 object.x,
                 object.y,
+                w,
+                h,
                 object.angle
             );
 
