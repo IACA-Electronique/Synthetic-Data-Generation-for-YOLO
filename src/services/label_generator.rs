@@ -1,7 +1,7 @@
 use mockall::automock;
 use crate::infrastructure::filesystem::FileSystem;
 use crate::models::image_recipe::ImageRecipe;
-use crate::utils::geometry::{center_and_angle_to_four_points, normalize_four_points};
+use crate::utils::geometry::{normalize_four_points, top_left_and_angle_to_four_points};
 
 #[automock]
 pub trait LabelGenerator {
@@ -23,7 +23,7 @@ impl<'a, FS: FileSystem> LabelGenerator for ObbYoloV11LabelGenerator<'_, FS> {
         let mut label = String::new();
         for object in recipe.object {
             let (w, h) = self.filesystem.get_image_size(&object.path)?;
-            let (x1, y1, x2, y2, x3, y3, x4, y4) = center_and_angle_to_four_points(
+            let (x1, y1, x2, y2, x3, y3, x4, y4) = top_left_and_angle_to_four_points(
                 object.x,
                 object.y,
                 w,
