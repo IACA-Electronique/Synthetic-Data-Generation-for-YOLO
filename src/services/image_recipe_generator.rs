@@ -3,17 +3,8 @@ use crate::models::image_recipe::{ImageRecipe, PrintableElementRecipe};
 use rand::Rng;
 
 pub trait ImageRecipeGenerator {
-    fn create(
-        background_dir: &str,
-        object_dir: &str,
-        distraction_dir: Option<String>,
-        width: u32,
-        height: u32,
-        output_dir: String,
-    ) -> Self;
-    fn generate<FS: FileSystem>(
+    fn generate(
         &self,
-        filesystem: &FS,
         count: u32,
     ) -> Result<Vec<ImageRecipe>, String>;
 }
@@ -23,7 +14,8 @@ pub trait ImageRecipeGenerator {
 const OBJECT_COUNT_PER_IMAGE: u32 = 3;
 const DISTRACTION_COUNT_PER_IMAGE: u32 = 2;
 
-pub struct ImageRecipeGeneratorImpl {
+pub struct ImageRecipeGeneratorImpl<'a, FS: FileSystem> {
+    filesystem: &'a FS,
     background_dir: String,
     object_dir: String,
     distraction_dir: Option<String>,
@@ -32,8 +24,9 @@ pub struct ImageRecipeGeneratorImpl {
     output_dir: String,
 }
 
-impl ImageRecipeGeneratorImpl {
+impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
     pub fn new(
+        filesystem: &'a FS,
         background_dir: String,
         object_dir: String,
         distraction_dir: Option<String>,
@@ -42,6 +35,7 @@ impl ImageRecipeGeneratorImpl {
         output_dir: String,
     ) -> Self {
         Self {
+            filesystem,
             background_dir,
             object_dir,
             distraction_dir,
@@ -51,8 +45,8 @@ impl ImageRecipeGeneratorImpl {
         }
     }
 
-    fn pick_background<FS: FileSystem>(&self, filesystem: &FS) -> Result<String, String> {
-        let backgrounds = filesystem.list_files(&self.background_dir)?;
+    fn pick_background(&self) -> Result<String, String> {
+        let backgrounds = self.filesystem.list_files(&self.background_dir)?;
         if backgrounds.is_empty() {
             return Err(format!(
                 "No background images found in {}",
@@ -63,28 +57,26 @@ impl ImageRecipeGeneratorImpl {
         Ok(backgrounds[index].clone())
     }
 
-    fn pick_object<FS: FileSystem>(
+    fn pick_object(
         &self,
-        filesystem: &FS,
     ) -> Result<PrintableElementRecipe, String> {
 
-        let class_dir = filesystem.list_subdirectories(&self.object_dir)?;
+        let class_dir = self.filesystem.list_subdirectories(&self.object_dir)?;
         if class_dir.is_empty() {
             // NOTE: Class directory not found, pick directly from object directory and assume there are only one class
-            Ok(self.pick_object_by_class(filesystem, None)?)
+            Ok(self.pick_object_by_class(None)?)
         }else {
             let class = Self::random(0, class_dir.len() as u32 - 1);
-            if filesystem.is_dir(&format!("{}/{}", self.object_dir, class)) {
-                Ok(self.pick_object_by_class(filesystem, Some(class))?)
+            if self.filesystem.is_dir(&format!("{}/{}", self.object_dir, class)) {
+                Ok(self.pick_object_by_class(Some(class))?)
             }else {
                 Err(format!("Class directory {} not found", class))
             }
         }
     }
 
-    fn pick_object_by_class<FS: FileSystem>(
+    fn pick_object_by_class(
         &self,
-        filesystem: &FS,
         class: Option<u32>,
     ) -> Result<PrintableElementRecipe, String> {
         let class_dir_path;
@@ -93,7 +85,7 @@ impl ImageRecipeGeneratorImpl {
         }else {
             class_dir_path = format!("{}/{}", self.object_dir, class.unwrap());
         }
-        let objects = filesystem.list_files(&class_dir_path)?;
+        let objects = self.filesystem.list_files(&class_dir_path)?;
         if objects.is_empty() {
             return Err(format!("No object images found for class {} in {}", class.unwrap_or(0), self.object_dir));
         }
@@ -103,15 +95,14 @@ impl ImageRecipeGeneratorImpl {
         Ok(object_recipe)
     }
 
-    fn pick_distraction<FS: FileSystem>(
+    fn pick_distraction(
         &self,
-        filesystem: &FS,
     ) -> Result<PrintableElementRecipe, String> {
         let dir = self
             .distraction_dir
             .as_ref()
             .ok_or_else(|| "No distraction directory configured".to_string())?;
-        let distractions = filesystem.list_files(dir)?;
+        let distractions = self.filesystem.list_files(dir)?;
         if distractions.is_empty() {
             return Err(format!("No distraction images found in {}", dir));
         }
@@ -140,28 +131,9 @@ impl ImageRecipeGeneratorImpl {
     }
 }
 
-impl ImageRecipeGenerator for ImageRecipeGeneratorImpl {
-    fn create(
-        background_dir: &str,
-        object_dir: &str,
-        distraction_dir: Option<String>,
-        width: u32,
-        height: u32,
-        output_dir: String,
-    ) -> Self {
-        ImageRecipeGeneratorImpl {
-            background_dir: background_dir.to_string(),
-            object_dir: object_dir.to_string(),
-            distraction_dir,
-            width,
-            height,
-            output_dir,
-        }
-    }
-
-    fn generate<FS: FileSystem>(
+impl<'a, FS: FileSystem> ImageRecipeGenerator for ImageRecipeGeneratorImpl<'a, FS>{
+    fn generate(
         &self,
-        filesystem: &FS,
         count: u32,
     ) -> Result<Vec<ImageRecipe>, String> {
         let mut recipes: Vec<ImageRecipe> = Vec::new();
@@ -171,20 +143,20 @@ impl ImageRecipeGenerator for ImageRecipeGeneratorImpl {
 
             image.width = self.width;
             image.height = self.height;
-            image.background_path = self.pick_background(filesystem)?;
+            image.background_path = self.pick_background()?;
 
-            let object_count = ImageRecipeGeneratorImpl::random(1, OBJECT_COUNT_PER_IMAGE);
+            let object_count = ImageRecipeGeneratorImpl::<FS>::random(1, OBJECT_COUNT_PER_IMAGE);
             for _ in 0..object_count {
-                let object = self.pick_object(filesystem)?;
+                let object = self.pick_object()?;
                 image.object.push(object);
             }
 
             if self.distraction_dir.is_some() {
                 let mut distractions: Vec<PrintableElementRecipe> = Vec::new();
                 let distraction_count =
-                    ImageRecipeGeneratorImpl::random(1, DISTRACTION_COUNT_PER_IMAGE);
+                    ImageRecipeGeneratorImpl::<FS>::random(1, DISTRACTION_COUNT_PER_IMAGE);
                 for _ in 0..distraction_count {
-                    distractions.push(self.pick_distraction(filesystem)?);
+                    distractions.push(self.pick_distraction()?);
                 }
                 image.distraction = Some(distractions);
             }
