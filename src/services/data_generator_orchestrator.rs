@@ -5,22 +5,24 @@ use crate::services::image_generator::ImageGenerator;
 use crate::services::image_recipe_generator::ImageRecipeGenerator;
 use mockall::automock;
 use std::marker::PhantomData;
+use crate::services::label_generator::LabelGenerator;
 
 #[automock]
 pub trait DataGeneratorOrchestrator {
     fn generate_images(&self,  count: u32, train_ratio: usize, val_ratio: usize, test_ratio: usize) -> Result<(), String>;
 }
 
-pub struct MultiThreadDataGeneratorOrchestrator<'a, R: ImageRecipeGenerator, I: ImageGenerator, C: DatasetConfig, FS: FileSystem> {
+pub struct MultiThreadDataGeneratorOrchestrator<'a, R: ImageRecipeGenerator, I: ImageGenerator, L: LabelGenerator, C: DatasetConfig, FS: FileSystem> {
     image_recipe_generator: &'a R,
     image_generator: &'a I,
+    label_generator: &'a L,
     dataset_config: &'a C,
     filesystem: PhantomData<FS>
 }
 
-impl<'a, R: ImageRecipeGenerator, I: ImageGenerator, C: DatasetConfig, FS: FileSystem> MultiThreadDataGeneratorOrchestrator<'a, R, I, C, FS> {
-    pub fn new(image_recipe_generator: &'a R, image_generator: &'a I, dataset_config: &'a C) -> Self {
-        Self { image_recipe_generator, image_generator, dataset_config, filesystem: PhantomData }
+impl<'a, R: ImageRecipeGenerator, I: ImageGenerator, L: LabelGenerator, C: DatasetConfig, FS: FileSystem> MultiThreadDataGeneratorOrchestrator<'a, R, I, L, C, FS> {
+    pub fn new(image_recipe_generator: &'a R, image_generator: &'a I, label_generator: &'a L, dataset_config: &'a C) -> Self {
+        Self { image_recipe_generator, image_generator, label_generator, dataset_config, filesystem: PhantomData }
     }
 
     pub fn split_recipes(&self, recipes: Vec<ImageRecipe>, train_ratio: usize, val_ratio: usize) -> Result<(Vec<ImageRecipe>, Vec<ImageRecipe>, Vec<ImageRecipe>), String> {
@@ -37,20 +39,23 @@ impl<'a, R: ImageRecipeGenerator, I: ImageGenerator, C: DatasetConfig, FS: FileS
         }
     }
 
-    pub fn get_output_dir_path_from_datatype(&self, datatype: DataType) -> String {
-        let output_dir_path: String;
+    pub fn get_output_dir_path_from_datatype(&self, datatype: DataType) -> (String, String) {
+        let output_dir_paths: (String, String) ;
         if datatype == DataType::TRAIN {
-            output_dir_path = self.dataset_config.get_images_train_dir_path().to_string();
+            output_dir_paths = (self.dataset_config.get_images_train_dir_path().to_string(),
+            self.dataset_config.get_labels_train_dir_path().to_string());
         } else if datatype == DataType::VAL {
-            output_dir_path = self.dataset_config.get_images_val_dir_path().to_string();
+            output_dir_paths = (self.dataset_config.get_images_val_dir_path().to_string(),
+            self.dataset_config.get_labels_val_dir_path().to_string());
         } else {
-            output_dir_path = self.dataset_config.get_images_test_dir_path().to_string();
+            output_dir_paths = (self.dataset_config.get_images_test_dir_path().to_string(),
+            self.dataset_config.get_labels_test_dir_path().to_string());
         }
-        output_dir_path
+        output_dir_paths
     }
 }
 
-impl<'a, R: ImageRecipeGenerator, I: ImageGenerator, C: DatasetConfig, FS: FileSystem> DataGeneratorOrchestrator for MultiThreadDataGeneratorOrchestrator<'a, R, I, C, FS> {
+impl<'a, R: ImageRecipeGenerator, I: ImageGenerator, L: LabelGenerator, C: DatasetConfig, FS: FileSystem> DataGeneratorOrchestrator for MultiThreadDataGeneratorOrchestrator<'a, R, I, L, C, FS> {
     fn generate_images(&self, count: u32, train_ratio: usize, val_ratio: usize, _test_ratio: usize) -> Result<(), String> {
         let recipes: Vec<ImageRecipe> = self.image_recipe_generator.generate(count)
             .map_err(|e| format!("Failed to generate image recipes: {}", e))?;
@@ -74,10 +79,10 @@ impl<'a, R: ImageRecipeGenerator, I: ImageGenerator, C: DatasetConfig, FS: FileS
 
 
         for (recipe, datatype) in pool {
-            let output_dir_path = self.get_output_dir_path_from_datatype(datatype);
+            let (output_dir_path, label_dir_path) = self.get_output_dir_path_from_datatype(datatype);
 
-            self.image_generator.generate_one(recipe, output_dir_path.clone())?;
-            // TODO: add label generator
+            self.image_generator.generate_one(recipe.clone(), output_dir_path.clone())?;
+            self.label_generator.generate_one(recipe.clone(), label_dir_path.clone())?;
         }
 
 

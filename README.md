@@ -36,6 +36,13 @@ cargo test -- --test-threads=1
 
 > Because the test implementation uses Mockall context overrides, it must run on a single thread to prevent interference between test cases.
 
+## 🛠️ Tools
+
+### Dataset viewer
+
+A basic dataset viewer is available in [`tools/viewer/`](tools/viewer/) directory.
+See attached README for more information.
+
 ## 🤖 AI Assistance
 
 AI assistance guidelines are defined in [.ai/RULES.md](.ai/RULES.md).
