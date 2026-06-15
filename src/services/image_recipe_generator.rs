@@ -23,7 +23,6 @@ pub struct ImageRecipeGeneratorImpl<'a, FS: FileSystem> {
     distraction_dir: Option<String>,
     width: u32,
     height: u32,
-    output_dir: String,
 }
 
 impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
@@ -34,7 +33,6 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
         distraction_dir: Option<String>,
         width: u32,
         height: u32,
-        output_dir: String,
     ) -> Self {
         Self {
             filesystem,
@@ -43,7 +41,6 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
             distraction_dir,
             width,
             height,
-            output_dir,
         }
     }
 
@@ -164,7 +161,7 @@ impl<'a, FS: FileSystem> ImageRecipeGenerator for ImageRecipeGeneratorImpl<'a, F
             }
 
             let id = Self::random(0, 1000000);
-            image.output_path = format!("{}/{}_{}.png", self.output_dir, id, i);
+            image.name = format!("{}_{}.png", id, i);
             recipes.push(image);
         }
 

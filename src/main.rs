@@ -2,7 +2,6 @@ use clap::Parser;
 use std::path::Path;
 use std::process::ExitCode;
 use synthetic_data_generator_for_yolo::infrastructure::builders::editable_image_builder::EditableImageBuilderImpl;
-use synthetic_data_generator_for_yolo::infrastructure::editable_image::ImageEditableImage;
 use synthetic_data_generator_for_yolo::infrastructure::filesystem::SimpleFileSystem;
 use synthetic_data_generator_for_yolo::models::dataset_config::YOLOObbDatasetConfig;
 use synthetic_data_generator_for_yolo::services::dataset_directory_structure_generator::{DatasetDirectoryStructureGenerator, DatasetDirectoryStructureGeneratorImpl};
@@ -61,8 +60,7 @@ impl App {
             self.args.object_dir.clone(),
             self.args.distraction_dir.clone(),
             1024,
-            1024,
-            self.args.output_dir.clone(),
+            1024
         );
 
         let dataset_config = YOLOObbDatasetConfig::new(self.args.output_dir.clone());
@@ -85,7 +83,7 @@ impl App {
 
         println!("Generating {} images...", self.args.count.unwrap());
         let generator = ImageGeneratorImpl::<EditableImageBuilderImpl>::new();
-        generator.generate(recipes)?;
+        generator.generate(recipes, self.args.output_dir.to_string())?;
 
         Ok(())
     }

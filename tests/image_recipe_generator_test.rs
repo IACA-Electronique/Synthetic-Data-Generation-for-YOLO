@@ -13,8 +13,7 @@ fn build_generator(fs: &MockFileSystem) -> ImageRecipeGeneratorImpl<MockFileSyst
         String::from("objects"),
         Some("distractions".to_string()),
         640,
-        480,
-        "output".to_string(),
+        480
     )
 }
 
@@ -145,19 +144,6 @@ fn generate_queries_background_directory() {
         .expect("generation should succeed");
 }
 
-#[test]
-fn generate_sets_output_path_in_output_dir() {
-    let filesystem = mock_filesystem();
-
-    let generator = build_generator(&filesystem);
-
-    let recipes = generator
-        .generate(1)
-        .expect("generation should succeed");
-
-    assert!(recipes[0].output_path.starts_with("output/"));
-    assert!(recipes[0].output_path.ends_with(".png"));
-}
 
 #[test]
 fn generate_adds_objects_within_limit() {
@@ -225,7 +211,6 @@ fn generate_without_distraction_dir_leaves_distraction_none() {
         None,
         640,
         480,
-        "output".to_string(),
     );
 
     let recipes = generator
