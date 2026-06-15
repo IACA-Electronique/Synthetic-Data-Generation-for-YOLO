@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use mockall::automock;
 use crate::infrastructure::builders::editable_image_builder::EditableImageBuilder;
 use crate::infrastructure::editable_image::EditableImage;
@@ -8,18 +9,18 @@ pub trait ImageGenerator {
     fn generate(&self, recipes: Vec<ImageRecipe>) -> Result<(), String>;
 }
 
-pub struct ImageGeneratorImpl<'a, B: EditableImageBuilder> {
-    editable_image_builder: &'a B,
+pub struct ImageGeneratorImpl<B: EditableImageBuilder> {
+    _builder: PhantomData<B>,
 }
 
-impl<'a, B: EditableImageBuilder> ImageGeneratorImpl<'a, B> {
-
-    pub fn new(editable_image_builder: &'a B) -> Self {
-        Self { editable_image_builder }
+impl<B: EditableImageBuilder> ImageGeneratorImpl<B> {
+    pub fn new() -> Self {
+        Self {
+            _builder: PhantomData,
+        }
     }
 }
-
-impl<B: EditableImageBuilder> ImageGenerator for ImageGeneratorImpl<'_, B> {
+impl<B: EditableImageBuilder> ImageGenerator for ImageGeneratorImpl<B> {
     fn generate(&self, recipes: Vec<ImageRecipe>) -> Result<(), String> {
         for recipe in recipes {
             let mut image= B::build_from_nothing(recipe.width, recipe.height);

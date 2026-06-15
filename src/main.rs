@@ -84,10 +84,7 @@ impl App {
         }
 
         println!("Generating {} images...", self.args.count.unwrap());
-        let builder_impl = EditableImageBuilderImpl::default();
-        let generator = ImageGeneratorImpl::new(
-            &builder_impl
-        );
+        let generator = ImageGeneratorImpl::<EditableImageBuilderImpl>::new();
         generator.generate(recipes)?;
 
         Ok(())

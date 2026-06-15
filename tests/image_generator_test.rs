@@ -15,16 +15,14 @@ impl EditableImageBuilder for TestEditableImageBuilder {
 
 #[test]
 fn test_generate_empty_recipes() {
-    let builder = TestEditableImageBuilder;
-    let generator = ImageGeneratorImpl::new(&builder);
+    let generator = ImageGeneratorImpl::<TestEditableImageBuilder>::new();
     let result = generator.generate(vec![]);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_generate_image_with_object_and_distraction() {
-    let builder = TestEditableImageBuilder;
-    let generator = ImageGeneratorImpl::new(&builder);
+    let generator = ImageGeneratorImpl::<TestEditableImageBuilder>::new();
 
     let mut recipe = ImageRecipe::new();
     recipe.background_path = "bg.png".to_string();
@@ -86,8 +84,7 @@ fn test_generate_image_with_object_and_distraction() {
 
 #[test]
 fn test_generate_image_no_distractions() {
-    let builder = TestEditableImageBuilder;
-    let generator = ImageGeneratorImpl::new(&builder);
+    let generator = ImageGeneratorImpl::<TestEditableImageBuilder>::new();
 
     let mut recipe = ImageRecipe::new();
     recipe.background_path = "bg2.png".to_string();
@@ -136,8 +133,7 @@ fn test_generate_image_no_distractions() {
 
 #[test]
 fn test_generate_multiple_recipes() {
-    let builder = TestEditableImageBuilder;
-    let generator = ImageGeneratorImpl::new(&builder);
+    let generator = ImageGeneratorImpl::<TestEditableImageBuilder>::new();
 
     let mut recipe1 = ImageRecipe::new();
     recipe1.background_path = "bg_multi1.png".to_string();
