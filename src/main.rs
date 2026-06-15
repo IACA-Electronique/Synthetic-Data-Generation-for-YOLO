@@ -1,13 +1,14 @@
 use clap::Parser;
 use std::path::Path;
 use std::process::ExitCode;
-use synthetic_data_generator_for_yolo::infrastructure::editable_image::ImageEditableImage;
+use synthetic_data_generator_for_yolo::infrastructure::builders::editable_image_builder::EditableImageBuilderImpl;
 use synthetic_data_generator_for_yolo::infrastructure::filesystem::SimpleFileSystem;
 use synthetic_data_generator_for_yolo::models::dataset_config::YOLOObbDatasetConfig;
+use synthetic_data_generator_for_yolo::services::data_generator_orchestrator::{DataGeneratorOrchestrator, MultiThreadDataGeneratorOrchestrator};
 use synthetic_data_generator_for_yolo::services::dataset_directory_structure_generator::{DatasetDirectoryStructureGenerator, DatasetDirectoryStructureGeneratorImpl};
 use synthetic_data_generator_for_yolo::services::dataset_yaml_generator::{DatasetYamlGenerator, DatasetYamlGeneratorImpl};
-use synthetic_data_generator_for_yolo::services::image_generator::{ImageGenerator, ImageGeneratorImpl};
-use synthetic_data_generator_for_yolo::services::image_recipe_generator::{ImageRecipeGenerator, ImageRecipeGeneratorImpl};
+use synthetic_data_generator_for_yolo::services::image_generator::ImageGeneratorImpl;
+use synthetic_data_generator_for_yolo::services::image_recipe_generator::ImageRecipeGeneratorImpl;
 use synthetic_data_generator_for_yolo::settings::VERSION;
 
 #[derive(Parser)]
@@ -31,6 +32,15 @@ struct Args {
 
     #[arg(long, short = 'c', required = true)]
     count: Option<u32>,
+
+    #[arg(long, default_value = "80")]
+    train_ratio: usize,
+
+    #[arg(long, default_value = "10")]
+    val_ratio: usize,
+
+    #[arg(long, default_value = "10")]
+    test_ratio: usize,
 }
 
 struct App {
@@ -43,16 +53,16 @@ impl App {
     }
 
     async fn run(&self) -> Result<(), String> {
+        let file_system = SimpleFileSystem::new();
+
         let recipes_generator = ImageRecipeGeneratorImpl::new(
+            &file_system,
             self.args.background_dir.clone(),
             self.args.object_dir.clone(),
             self.args.distraction_dir.clone(),
             1024,
-            1024,
-            self.args.output_dir.clone(),
+            1024
         );
-
-        let file_system = SimpleFileSystem::new();
 
         let dataset_config = YOLOObbDatasetConfig::new(self.args.output_dir.clone());
 
@@ -64,17 +74,20 @@ impl App {
         let yaml_filepath = yaml_generator.generate_yaml()?;
         println!("Dataset YAML file generated at {}", yaml_filepath);
 
-        println!("Generating {} recipes images...", self.args.count.unwrap());
-        let recipes = recipes_generator.generate(&file_system, self.args.count.unwrap())?;
-
         let output_dir = Path::new(&self.args.output_dir);
         if !output_dir.exists() {
             std::fs::create_dir_all(output_dir).map_err(|e| e.to_string())?;
         }
 
+        let generator = ImageGeneratorImpl::<EditableImageBuilderImpl>::new();
+
         println!("Generating {} images...", self.args.count.unwrap());
-        let generator = ImageGeneratorImpl::new();
-        generator.generate::<ImageEditableImage>(recipes)?;
+        let orchestrator =
+            MultiThreadDataGeneratorOrchestrator::<_,_,_,SimpleFileSystem>::new(
+                &recipes_generator,
+                &generator,
+                &dataset_config);
+        orchestrator.generate_images(self.args.count.unwrap(), self.args.train_ratio, self.args.val_ratio, self.args.test_ratio)?;
 
         Ok(())
     }

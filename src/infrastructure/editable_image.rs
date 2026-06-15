@@ -4,7 +4,6 @@ use mockall::automock;
 
 #[automock]
 pub trait EditableImage {
-
     fn from_file(path: &str) -> Self;
     fn from_nothing(width: u32, height: u32) -> Self;
     fn save(&self, path: &str);
