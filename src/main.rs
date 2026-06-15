@@ -91,7 +91,7 @@ impl App {
                 &image_generator,
                 &label_generator,
                 &dataset_config);
-        orchestrator.generate_images(self.args.count.unwrap(), self.args.train_ratio, self.args.val_ratio, self.args.test_ratio)?;
+        orchestrator.generate_images(self.args.count.unwrap(), self.args.train_ratio, self.args.val_ratio, self.args.test_ratio).await?;
 
         Ok(())
     }
