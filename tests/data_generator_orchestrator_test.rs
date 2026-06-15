@@ -106,6 +106,7 @@ fn split_recipes_returns_error_when_dataset_is_too_small_for_given_ratios() {
 fn get_output_dir_path_from_datatype_returns_train_path() {
     let mut dc = MockDatasetConfig::new();
     dc.expect_get_images_train_dir_path().return_const("/data/images/train".to_string());
+    dc.expect_get_labels_train_dir_path().return_const("/data/labels/train".to_string());
 
     let orch = MultiThreadDataGeneratorOrchestrator::<_,_,_,_,MockFileSystem>::new(&*IGG, &*IG, &*LG, &dc);
 
@@ -116,6 +117,7 @@ fn get_output_dir_path_from_datatype_returns_train_path() {
 fn get_output_dir_path_from_datatype_returns_val_path() {
     let mut dc = MockDatasetConfig::new();
     dc.expect_get_images_val_dir_path().return_const("/data/images/val".to_string());
+    dc.expect_get_labels_val_dir_path().return_const("/data/labels/val".to_string());
 
     let orch = MultiThreadDataGeneratorOrchestrator::<_,_,_,_,MockFileSystem>::new(&*IGG, &*IG, &*LG, &dc);
 
@@ -126,6 +128,7 @@ fn get_output_dir_path_from_datatype_returns_val_path() {
 fn get_output_dir_path_from_datatype_returns_test_path() {
     let mut dc = MockDatasetConfig::new();
     dc.expect_get_images_test_dir_path().return_const("/data/images/test".to_string());
+    dc.expect_get_labels_test_dir_path().return_const("/data/labels/test".to_string());
 
     let orch = MultiThreadDataGeneratorOrchestrator::<_,_,_,_,MockFileSystem>::new(&*IGG, &*IG, &*LG, &dc);
 
