@@ -5,7 +5,7 @@
 - [x] Add dataset.yaml generator
 - [x] Add dataset OBB format generation
 - [x] Add a system to configure the ratio of generated data in the dataset
-- [ ] Add label generation
+- [x] Add label generation
 - [ ] Update usage in README.md
 - [ ] At the end of the program, add a summary of the generated files
 - [ ] At the end of the program, add a warning to remind the user to update dataset.yaml according to their specifications
