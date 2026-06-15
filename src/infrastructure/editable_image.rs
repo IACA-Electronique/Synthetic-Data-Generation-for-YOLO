@@ -4,9 +4,13 @@ use mockall::automock;
 
 #[automock]
 pub trait EditableImage {
+    fn from_file(path: &str) -> Self
+    where
+        Self: Sized;
 
-    fn from_file(path: &str) -> Self;
-    fn from_nothing(width: u32, height: u32) -> Self;
+    fn from_nothing(width: u32, height: u32) -> Self
+    where
+        Self: Sized;
     fn save(&self, path: &str);
     fn set_background_from_file(&mut self, path: &str);
     fn set_background_from_color(&mut self, color: (u8, u8, u8));

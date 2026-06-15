@@ -1,17 +1,30 @@
-use synthetic_data_generator_for_yolo::infrastructure::editable_image::MockEditableImage;
+use synthetic_data_generator_for_yolo::infrastructure::builders::editable_image_builder::EditableImageBuilder;
+use synthetic_data_generator_for_yolo::infrastructure::editable_image::{EditableImage, MockEditableImage};
 use synthetic_data_generator_for_yolo::services::image_generator::{ImageGenerator, ImageGeneratorImpl};
 use synthetic_data_generator_for_yolo::models::image_recipe::{ImageRecipe, PrintableElementRecipe};
 
+struct TestEditableImageBuilder;
+
+impl EditableImageBuilder for TestEditableImageBuilder {
+    type Image = MockEditableImage;
+
+    fn build_from_nothing(width: u32, height: u32) -> MockEditableImage {
+        MockEditableImage::from_nothing(width, height)
+    }
+}
+
 #[test]
 fn test_generate_empty_recipes() {
-    let generator = ImageGeneratorImpl::new();
-    let result = generator.generate::<MockEditableImage>(vec![]);
+    let builder = TestEditableImageBuilder;
+    let generator = ImageGeneratorImpl::new(&builder);
+    let result = generator.generate(vec![]);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_generate_image_with_object_and_distraction() {
-    let generator = ImageGeneratorImpl::new();
+    let builder = TestEditableImageBuilder;
+    let generator = ImageGeneratorImpl::new(&builder);
 
     let mut recipe = ImageRecipe::new();
     recipe.background_path = "bg.png".to_string();
@@ -67,13 +80,14 @@ fn test_generate_image_with_object_and_distraction() {
             mock_image
         });
 
-    let result = generator.generate::<MockEditableImage>(vec![recipe]);
+    let result = generator.generate(vec![recipe]);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_generate_image_no_distractions() {
-    let generator = ImageGeneratorImpl::new();
+    let builder = TestEditableImageBuilder;
+    let generator = ImageGeneratorImpl::new(&builder);
 
     let mut recipe = ImageRecipe::new();
     recipe.background_path = "bg2.png".to_string();
@@ -116,13 +130,14 @@ fn test_generate_image_no_distractions() {
             mock_image
         });
 
-    let result = generator.generate::<MockEditableImage>(vec![recipe]);
+    let result = generator.generate(vec![recipe]);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_generate_multiple_recipes() {
-    let generator = ImageGeneratorImpl::new();
+    let builder = TestEditableImageBuilder;
+    let generator = ImageGeneratorImpl::new(&builder);
 
     let mut recipe1 = ImageRecipe::new();
     recipe1.background_path = "bg_multi1.png".to_string();
@@ -168,6 +183,6 @@ fn test_generate_multiple_recipes() {
             mock
         });
 
-    let result = generator.generate::<MockEditableImage>(vec![recipe1, recipe2]);
+    let result = generator.generate(vec![recipe1, recipe2]);
     assert!(result.is_ok());
 }
