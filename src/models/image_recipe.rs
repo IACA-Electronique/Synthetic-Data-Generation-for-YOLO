@@ -1,9 +1,9 @@
 #[derive(Debug, Clone, PartialEq)]
 pub struct ImageRecipe {
+    pub name: String,
     pub background_path: String,
     pub distraction: Option<Vec<PrintableElementRecipe>>,
     pub object: Vec<PrintableElementRecipe>,
-    pub output_path: String,
     pub width: u32,
     pub height: u32,   
 }
@@ -11,10 +11,10 @@ pub struct ImageRecipe {
 impl ImageRecipe {
     pub fn new() -> Self {
         Self {
+            name: String::new(),
             background_path: String::new(),
             distraction: None,
             object: Vec::new(),
-            output_path: String::new(),
             width: 0,
             height: 0,
         }

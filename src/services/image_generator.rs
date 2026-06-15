@@ -6,7 +6,7 @@ use crate::models::image_recipe::ImageRecipe;
 
 #[automock]
 pub trait ImageGenerator {
-    fn generate(&self, recipes: Vec<ImageRecipe>) -> Result<(), String>;
+    fn generate(&self, recipes: Vec<ImageRecipe>, output_dir: String) -> Result<(), String>;
 }
 
 pub struct ImageGeneratorImpl<B: EditableImageBuilder> {
@@ -21,7 +21,7 @@ impl<B: EditableImageBuilder> ImageGeneratorImpl<B> {
     }
 }
 impl<B: EditableImageBuilder> ImageGenerator for ImageGeneratorImpl<B> {
-    fn generate(&self, recipes: Vec<ImageRecipe>) -> Result<(), String> {
+    fn generate(&self, recipes: Vec<ImageRecipe>, output_dir: String) -> Result<(), String> {
         for recipe in recipes {
             let mut image= B::build_from_nothing(recipe.width, recipe.height);
             image.set_background_from_file(&recipe.background_path);
@@ -46,7 +46,7 @@ impl<B: EditableImageBuilder> ImageGenerator for ImageGeneratorImpl<B> {
                     )
                 }
             }
-            image.save(&recipe.output_path);
+            image.save(&format!("{}/{}.png", output_dir, recipe.name));
         }
 
         Ok(())

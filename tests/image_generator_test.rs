@@ -16,7 +16,7 @@ impl EditableImageBuilder for TestEditableImageBuilder {
 #[test]
 fn test_generate_empty_recipes() {
     let generator = ImageGeneratorImpl::<TestEditableImageBuilder>::new();
-    let result = generator.generate(vec![]);
+    let result = generator.generate(vec![], String::new());
     assert!(result.is_ok());
 }
 
@@ -26,7 +26,6 @@ fn test_generate_image_with_object_and_distraction() {
 
     let mut recipe = ImageRecipe::new();
     recipe.background_path = "bg.png".to_string();
-    recipe.output_path = "output.png".to_string();
     recipe.width = 640;
     recipe.height = 480;
     recipe.object = vec![
@@ -71,14 +70,14 @@ fn test_generate_image_with_object_and_distraction() {
                 .returning(|_, _, _, _, _| ());
 
             mock_image.expect_save()
-                .with(mockall::predicate::eq("output.png"))
+                .with(mockall::predicate::str::starts_with("/out/test"))
                 .times(1)
                 .returning(|_| ());
 
             mock_image
         });
 
-    let result = generator.generate(vec![recipe]);
+    let result = generator.generate(vec![recipe], "/out/test".to_string());
     assert!(result.is_ok());
 }
 
@@ -88,7 +87,6 @@ fn test_generate_image_no_distractions() {
 
     let mut recipe = ImageRecipe::new();
     recipe.background_path = "bg2.png".to_string();
-    recipe.output_path = "output2.png".to_string();
     recipe.width = 320;
     recipe.height = 240;
     recipe.object = vec![
@@ -120,14 +118,14 @@ fn test_generate_image_no_distractions() {
                 .returning(|_, _, _, _, _| ());
 
             mock_image.expect_save()
-                .with(mockall::predicate::eq("output2.png"))
+                .with(mockall::predicate::str::starts_with("/out/test"))
                 .times(1)
                 .returning(|_| ());
 
             mock_image
         });
 
-    let result = generator.generate(vec![recipe]);
+    let result = generator.generate(vec![recipe], "/out/test".to_string());
     assert!(result.is_ok());
 }
 
@@ -137,13 +135,11 @@ fn test_generate_multiple_recipes() {
 
     let mut recipe1 = ImageRecipe::new();
     recipe1.background_path = "bg_multi1.png".to_string();
-    recipe1.output_path = "out_multi1.png".to_string();
     recipe1.width = 100;
     recipe1.height = 100;
 
     let mut recipe2 = ImageRecipe::new();
     recipe2.background_path = "bg_multi2.png".to_string();
-    recipe2.output_path = "out_multi2.png".to_string();
     recipe2.width = 200;
     recipe2.height = 200;
 
@@ -158,7 +154,7 @@ fn test_generate_multiple_recipes() {
                 .times(1)
                 .returning(|_| ());
             mock.expect_save()
-                .with(mockall::predicate::eq("out_multi1.png"))
+                .with(mockall::predicate::str::starts_with("/out/test"))
                 .times(1)
                 .returning(|_| ());
             mock
@@ -173,12 +169,12 @@ fn test_generate_multiple_recipes() {
                 .times(1)
                 .returning(|_| ());
             mock.expect_save()
-                .with(mockall::predicate::eq("out_multi2.png"))
+                .with(mockall::predicate::str::starts_with("/out/test"))
                 .times(1)
                 .returning(|_| ());
             mock
         });
 
-    let result = generator.generate(vec![recipe1, recipe2]);
+    let result = generator.generate(vec![recipe1, recipe2], "/out/test".to_string());
     assert!(result.is_ok());
 }
