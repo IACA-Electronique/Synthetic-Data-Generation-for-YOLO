@@ -11,8 +11,28 @@ use crate::services::label_generator::LabelGenerator;
 #[automock]
 #[async_trait]
 pub trait DataGeneratorOrchestrator {
-    async fn generate_images(&self,  count: u32, train_ratio: usize, val_ratio: usize, test_ratio: usize) -> Result<(), String>;
+    async fn generate_images<'cb>(&self,  count: u32, train_ratio: usize, val_ratio: usize, test_ratio: usize, on_progress: Option<GenerateImagesProgressCallback<'cb>>) -> Result<(), String>;
 }
+
+#[derive(Debug, Clone)]
+pub enum GenerateImagesProgress {
+    Started {
+        total: u32,
+    },
+    RecipesGenerated {
+        total: u32,
+    },
+    Generating {
+        count: u32,
+        total: u32,
+    },
+    Completed {
+        total: u32,
+    },
+}
+
+pub type GenerateImagesProgressCallback<'a> =
+&'a (dyn Fn(GenerateImagesProgress) + Send + Sync);
 
 pub struct MultiThreadDataGeneratorOrchestrator<
     'a,
@@ -80,9 +100,21 @@ impl<
     C: DatasetConfig + Sync,
     FS: FileSystem + Sync,
 > DataGeneratorOrchestrator for MultiThreadDataGeneratorOrchestrator<'a, R, I, L, C, FS> {
-    async fn generate_images(&self, count: u32, train_ratio: usize, val_ratio: usize, _test_ratio: usize) -> Result<(), String> {
+    async fn generate_images<'cb>(&self, count: u32, train_ratio: usize, val_ratio: usize, _test_ratio: usize,on_progress: Option<GenerateImagesProgressCallback<'cb>>) -> Result<(), String> {
+        if let Some(callback) = on_progress {
+            callback(GenerateImagesProgress::Started {
+                total: count,
+            });
+        }
+
         let recipes: Vec<ImageRecipe> = self.image_recipe_generator.generate(count)
             .map_err(|e| format!("Failed to generate image recipes: {}", e))?;
+
+        if let Some(callback) = on_progress {
+            callback(GenerateImagesProgress::RecipesGenerated {
+                total: recipes.len() as u32,
+            });
+        }
 
         let (train_recipes, val_recipes, test_recipes) =
             self.split_recipes(recipes, train_ratio, val_ratio)?;
@@ -101,16 +133,29 @@ impl<
             pool.push((recipe, DataType::TEST));
         }
 
+        let count = pool.len() as u32;
+        let mut i = 0;
 
         for (recipe, datatype) in pool {
             let (output_dir_path, label_dir_path) = self.get_output_dir_path_from_datatype(datatype);
 
             self.image_generator.generate_one(recipe.clone(), output_dir_path.clone())?;
             self.label_generator.generate_one(recipe.clone(), label_dir_path.clone())?;
+            i+=1;
+            if let Some(callback) = on_progress {
+                callback(GenerateImagesProgress::Generating {
+                    count: i,
+                    total: count,
+                });
+            }
         }
 
 
-
+        if let Some(callback) = on_progress {
+            callback(GenerateImagesProgress::Completed {
+                total: count,
+            });
+        }
 
         // TODO:
         //  - generate_images wait that all workers are done.
