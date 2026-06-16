@@ -5,6 +5,8 @@ use crate::services::image_generator::ImageGenerator;
 use crate::services::image_recipe_generator::ImageRecipeGenerator;
 use mockall::automock;
 use std::marker::PhantomData;
+use std::sync::atomic::Ordering;
+use std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use crate::services::label_generator::LabelGenerator;
 
@@ -136,19 +138,56 @@ impl<
         let count = pool.len() as u32;
         let mut i = 0;
 
-        for (recipe, datatype) in pool {
-            let (output_dir_path, label_dir_path) = self.get_output_dir_path_from_datatype(datatype);
+        let counter: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
+        let thread_count = 8;
+        let chunk_size = (pool.len() + thread_count - 1) / thread_count; // ceil division
 
-            self.image_generator.generate_one(recipe.clone(), output_dir_path.clone())?;
-            self.label_generator.generate_one(recipe.clone(), label_dir_path.clone())?;
-            i+=1;
-            if let Some(callback) = on_progress {
-                callback(GenerateImagesProgress::Generating {
-                    count: i,
-                    total: count,
+        // Split pool into 4 (roughly) equal subpools.
+        let subpools: Vec<Vec<(ImageRecipe, DataType)>> = pool
+            .chunks(chunk_size)
+            .map(|c| c.to_vec())
+            .collect();
+
+        // Borrow references for the threads.
+        let this = &*self;
+
+        std::thread::scope(|s| -> Result<(), String> {
+            let mut handles = Vec::with_capacity(subpools.len());
+
+            for subpool in subpools {
+                let counter = Arc::clone(&counter);
+                let handle = s.spawn(move || -> Result<(), String> {
+                    for (recipe, datatype) in subpool {
+                        let (output_dir_path, label_dir_path) =
+                            this.get_output_dir_path_from_datatype(datatype);
+
+                        this.image_generator
+                            .generate_one(recipe.clone(), output_dir_path)?;
+                        this.label_generator
+                            .generate_one(recipe, label_dir_path)?;
+
+                        let mut i = counter.lock().unwrap();
+                        *i += 1;
+                        let current = i.clone();
+                        if let Some(callback) = on_progress {
+                            callback(GenerateImagesProgress::Generating {
+                                count: current,
+                                total: count,
+                            });
+                        }
+                    }
+                    Ok(())
                 });
+                handles.push(handle);
             }
-        }
+
+            // Join all threads and propagate the first error if any.
+            for h in handles {
+                h.join().map_err(|_| "Worker thread panicked".to_string())??;
+            }
+
+            Ok(())
+        })?;
 
 
         if let Some(callback) = on_progress {
@@ -156,11 +195,6 @@ impl<
                 total: count,
             });
         }
-
-        // TODO:
-        //  - generate_images wait that all workers are done.
-        //  - handle cancel (add observable cancel flag in constructor ?)
-        //  - Write unit tests.
 
         Ok(())
     }
