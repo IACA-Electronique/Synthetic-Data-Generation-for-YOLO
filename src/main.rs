@@ -42,6 +42,9 @@ struct Args {
 
     #[arg(long, default_value = "10")]
     test_ratio: usize,
+
+    #[arg(long, short = 'j', default_value = "1")]
+    thread_count: usize,
 }
 
 struct App {
@@ -100,6 +103,7 @@ impl App {
             self.args.train_ratio,
             self.args.val_ratio,
             self.args.test_ratio,
+            self.args.thread_count,
             Some(&on_progress)).await?;
 
         Ok(())
