@@ -1,10 +1,11 @@
 stages:
   - tests
+  - deploy
 
 variables:
   PROJECT_NAME: synthetic-data-generator-for-yolo
   DOCKERFILE_PATH: deployment/Dockerfile
-  DOCKERHUB_SUPPORTED_PLATFORMS: linux/amd64,linux/arm64
+  DOCKERHUB_SUPPORTED_PLATFORMS: linux/amd64
   TZ: "Europe/Paris"
   TAG_TITLE: ${CI_COMMIT_REF_NAME}
   VERSION: ${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}
@@ -25,3 +26,40 @@ tests:
     - cargo test -- --test-threads=1
   after_script:
     - cargo clean
+
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------v- TAGS -v--------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+
+.deploy-template:
+  image: docker:29
+  stage: deploy
+  only:
+    - tags
+  before_script:
+    - apk update
+    - apk add git bash sshpass openssh-client
+    - docker buildx create --name container --driver=docker-container --driver-opt network=host --use
+
+deploy-dockerhub-registry:
+  extends: .deploy-template
+  stage: "deploy"
+  only:
+    - tags
+  script:
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - |
+      # Determine if we should add the 'latest' tag
+      # We fetch the origin/master to ensure we have the latest reference to check against
+      git fetch origin master
+      DOCKER_TAGS="-t ${DOCKERHUB_USERNAME}/${PROJECT_NAME}:${TAG_TITLE}"
+      if git branch -r --contains ${CI_COMMIT_SHA} | grep -q "origin/master"; then
+        echo "Tag is on master branch, adding 'latest' tag"
+        DOCKER_TAGS="${DOCKER_TAGS} -t ${DOCKERHUB_USERNAME}/${PROJECT_NAME}:latest"
+      fi
+    - |
+      docker buildx build \
+      --builder=container \
+      --platform=${DOCKERHUB_SUPPORTED_PLATFORMS} \
+      ${DOCKER_TAGS} \
+      -f ${DOCKERFILE_PATH} --push --build-arg VERSION=${VERSION} --build-arg PROJECT_NAME=${PROJECT_NAME} .

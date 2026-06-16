@@ -45,6 +45,30 @@ program \
 
 > Object directory should contain images of the objects you want to detect in YOLO format (JPEG or PNG). Place each category of objects in its own subfolder (e.g., `object_dir/vehicle`, `object_dir/person`, etc.).
 
+## 🚀 Run
+
+### Dockerhub
+
+```bash
+docker run iacaelectronique/synthetic-data-generator:latest # See "Usage" section for arguments
+```
+
+### Docker local
+
+```bash
+docker build -t synthetic-data-generator -f deployment/Dockerfile .
+
+docker run synthetic-data-generator # See "Usage" section for arguments
+```
+
+### Local
+
+> Requires Rust 1.56+
+
+```bash
+cargo run --release
+```
+
 ## 🧪 Tests
 
 ```bash
