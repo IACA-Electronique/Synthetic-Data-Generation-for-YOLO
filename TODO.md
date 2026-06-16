@@ -10,7 +10,7 @@
 - [x] Improve progress logging
 - [x] At the end of the program, add a summary of the generated files
 - [x] Update usage in README.md
-- [ ] CI/CD
+- [x] CI/CD
 
 ## 1.x
 
