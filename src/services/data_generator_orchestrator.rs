@@ -12,7 +12,14 @@ use std::sync::{Arc, Mutex};
 #[automock]
 #[async_trait]
 pub trait DataGeneratorOrchestrator {
-    async fn generate_images<'cb>(&self,  count: u32, train_ratio: usize, val_ratio: usize, test_ratio: usize, on_progress: Option<GenerateImagesProgressCallback<'cb>>) -> Result<(), String>;
+    async fn generate_images<'cb>(
+        &self,
+        count: u32,
+        train_ratio: usize,
+        val_ratio: usize,
+        test_ratio: usize,
+        thread_count: usize,
+        on_progress: Option<GenerateImagesProgressCallback<'cb>>) -> Result<(), String>;
 }
 
 #[derive(Debug, Clone)]
@@ -198,7 +205,27 @@ impl<
     C: DatasetConfig + Sync,
     FS: FileSystem + Sync,
 > DataGeneratorOrchestrator for MultiThreadDataGeneratorOrchestrator<'a, R, I, L, C, FS> {
-    async fn generate_images<'cb>(&self, count: u32, train_ratio: usize, val_ratio: usize, _test_ratio: usize,on_progress: Option<GenerateImagesProgressCallback<'cb>>) -> Result<(), String> {
+    async fn generate_images<'cb>(
+        &self,
+        count: u32,
+        train_ratio: usize,
+        val_ratio: usize,
+        _test_ratio: usize,
+        thread_count: usize,
+        on_progress: Option<GenerateImagesProgressCallback<'cb>>) -> Result<(), String> {
+
+        if count == 0 {
+            return Err("Count must be greater than 0".to_string());
+        }
+
+        if thread_count == 0 {
+            return Err("Thread count must be greater than 0".to_string());
+        }
+
+        if thread_count as u32 > count {
+            return Err("Thread count must be less than or equal to the total number of images".to_string());
+        }
+
         Self::log_process_started(on_progress, count);
 
         let recipes: Vec<ImageRecipe> = self.image_recipe_generator.generate(count)
@@ -209,8 +236,6 @@ impl<
         let pool = self.build_pool_of_recipes(train_ratio, val_ratio, recipes)?;
 
         let pool_total_count = pool.len() as u32;
-
-        let thread_count = 8;
 
         let subpools = Self::split_pool_for_threads(pool, thread_count);
 
