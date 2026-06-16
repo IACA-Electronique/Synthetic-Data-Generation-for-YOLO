@@ -50,10 +50,10 @@ program \
 > Base of generated data is from [assets/](assets/) directory. 
 
 ```bash
-docker run iacaelectronique/synthetic-data-generator:latest \
- --background-dir ./assets/bg/ \
- --object-dir ./objects/objects/ \
- --output-dir out/gen_100 \
+docker run -v $(pwd):/shared iacaelectronique/synthetic-data-generator-for-yolo:latest \
+ --background-dir /shared/assets/bg/ \
+ --object-dir /shared/objects/ \
+ --output-dir /shared/out/gen_100 \
  -j 8 \
  -c 100
 ```
