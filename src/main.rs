@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use synthetic_data_generator_for_yolo::infrastructure::builders::editable_image_builder::EditableImageBuilderImpl;
 use synthetic_data_generator_for_yolo::infrastructure::filesystem::SimpleFileSystem;
 use synthetic_data_generator_for_yolo::models::dataset_config::YOLOObbDatasetConfig;
-use synthetic_data_generator_for_yolo::services::data_generator_orchestrator::{DataGeneratorOrchestrator, MultiThreadDataGeneratorOrchestrator};
+use synthetic_data_generator_for_yolo::services::data_generator_orchestrator::{DataGeneratorOrchestrator, GenerateImagesProgress, MultiThreadDataGeneratorOrchestrator};
 use synthetic_data_generator_for_yolo::services::dataset_directory_structure_generator::{DatasetDirectoryStructureGenerator, DatasetDirectoryStructureGeneratorImpl};
 use synthetic_data_generator_for_yolo::services::dataset_yaml_generator::{DatasetYamlGenerator, DatasetYamlGeneratorImpl};
 use synthetic_data_generator_for_yolo::services::image_generator::ImageGeneratorImpl;
@@ -91,9 +91,40 @@ impl App {
                 &image_generator,
                 &label_generator,
                 &dataset_config);
-        orchestrator.generate_images(self.args.count.unwrap(), self.args.train_ratio, self.args.val_ratio, self.args.test_ratio)?;
+
+
+        let on_progress = Self::build_progress_callback();
+
+        orchestrator.generate_images(
+            self.args.count.unwrap(),
+            self.args.train_ratio,
+            self.args.val_ratio,
+            self.args.test_ratio,
+            Some(&on_progress)).await?;
 
         Ok(())
+    }
+
+    fn build_progress_callback() -> fn(GenerateImagesProgress) {
+        |progress: GenerateImagesProgress| {
+            match progress {
+                GenerateImagesProgress::Started { total } => {
+                    println!("Starting generation of {} images...", total);
+                }
+                GenerateImagesProgress::RecipesGenerated { total } => {
+                    println!("Generated {} image recipes.", total);
+                }
+                GenerateImagesProgress::Generating {
+                    count,
+                    total
+                } => {
+                    println!("[{}/{}] Generating...", count, total);
+                }
+                GenerateImagesProgress::Completed { total } => {
+                    println!("Completed generation of {} images.", total);
+                }
+            }
+        }
     }
 }
 

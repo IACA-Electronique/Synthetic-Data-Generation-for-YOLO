@@ -161,7 +161,7 @@ impl<'a, FS: FileSystem> ImageRecipeGenerator for ImageRecipeGeneratorImpl<'a, F
             }
 
             let id = Self::random(0, 1000000);
-            image.name = format!("{}_{}.png", id, i);
+            image.name = format!("{}_{}", id, i);
             recipes.push(image);
         }
 
