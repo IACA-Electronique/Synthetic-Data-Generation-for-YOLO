@@ -15,3 +15,10 @@ http/http-client.env.json
 # Rust
 target
 Cargo.lock
+
+# Custom
+sandbox
+.tmp/
+
+# AI
+.claude

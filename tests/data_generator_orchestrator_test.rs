@@ -1,0 +1,136 @@
+use std::sync::LazyLock;
+use synthetic_data_generator_for_yolo::infrastructure::filesystem::MockFileSystem;
+use synthetic_data_generator_for_yolo::models::dataset_config::MockDatasetConfig;
+use synthetic_data_generator_for_yolo::models::image_recipe::ImageRecipe;
+use synthetic_data_generator_for_yolo::services::data_generator_orchestrator::{DataType, MultiThreadDataGeneratorOrchestrator};
+use synthetic_data_generator_for_yolo::services::image_generator::MockImageGenerator;
+use synthetic_data_generator_for_yolo::services::image_recipe_generator::MockImageRecipeGenerator;
+use synthetic_data_generator_for_yolo::services::label_generator::MockLabelGenerator;
+
+static IG: LazyLock<MockImageGenerator> = LazyLock::new(MockImageGenerator::new);
+static LG: LazyLock<MockLabelGenerator> = LazyLock::new(MockLabelGenerator::new);
+static IGG: LazyLock<MockImageRecipeGenerator> = LazyLock::new(MockImageRecipeGenerator::new);
+static DC: LazyLock<MockDatasetConfig> = LazyLock::new(MockDatasetConfig::new);
+
+
+fn build_orch(
+) -> MultiThreadDataGeneratorOrchestrator<
+    'static,
+    MockImageRecipeGenerator,
+    MockImageGenerator,
+    MockLabelGenerator,
+    MockDatasetConfig,
+    MockFileSystem,
+> {
+    MultiThreadDataGeneratorOrchestrator::new(&IGG, &IG, &LG, &DC)
+}
+
+// ------------------------------------------------------------------------------------------------
+
+fn make_recipes(n: usize) -> Vec<ImageRecipe> {
+    (0..n).map(|_| ImageRecipe::new()).collect()
+}
+
+// --- success cases ---
+
+#[test]
+fn split_recipes_produces_correctly_sized_subsets_for_standard_ratios() {
+    let recipes = make_recipes(100);
+
+    let orch = build_orch();
+
+    let (train, val, test) = orch.split_recipes(recipes, 80, 10).unwrap();
+
+    assert_eq!(train.len(), 80);
+    assert_eq!(val.len(), 10);
+    assert_eq!(test.len(), 10);
+}
+
+#[test]
+fn split_recipes_produces_correctly_sized_subsets_for_small_dataset() {
+    // 10 recipes: 60% train=6, 20% val=2 from remaining 4, test=2
+    let recipes = make_recipes(10);
+
+    let (train, val, test) = build_orch().split_recipes(recipes, 60, 20).unwrap();
+
+    assert_eq!(train.len(), 6);
+    assert_eq!(val.len(), 2);
+    assert_eq!(test.len(), 2);
+}
+
+// --- failure cases ---
+
+#[test]
+fn split_recipes_returns_error_when_train_subset_is_empty() {
+    let recipes = make_recipes(100);
+
+    let result = build_orch().split_recipes(recipes, 0, 10);
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn split_recipes_returns_error_when_val_subset_is_empty() {
+    let recipes = make_recipes(100);
+
+    let result = build_orch().split_recipes(recipes, 80, 0);
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn split_recipes_returns_error_when_test_subset_is_empty() {
+    // 10 recipes: 90% train=9, 10% val=floor(0.3)=0 → val empty
+    let recipes = make_recipes(10);
+
+    let result = build_orch().split_recipes(recipes, 90, 10);
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn split_recipes_returns_error_when_dataset_is_too_small_for_given_ratios() {
+    // 3 recipes: 80% train=2, 10% val=floor(0.3)=0 → val empty
+    let recipes = make_recipes(3);
+
+    let result = build_orch().split_recipes(recipes, 80, 10);
+
+    assert!(result.is_err());
+}
+
+// ------------------------------------------------------------------------------------------------
+// get_output_dir_path_from_datatype
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn get_output_dir_path_from_datatype_returns_train_path() {
+    let mut dc = MockDatasetConfig::new();
+    dc.expect_get_images_train_dir_path().return_const("/data/images/train".to_string());
+    dc.expect_get_labels_train_dir_path().return_const("/data/labels/train".to_string());
+
+    let orch = MultiThreadDataGeneratorOrchestrator::<_,_,_,_,MockFileSystem>::new(&*IGG, &*IG, &*LG, &dc);
+
+    assert_eq!(orch.get_output_dir_path_from_datatype(DataType::TRAIN), (String::from("/data/images/train"),String::from("/data/labels/train")));
+}
+
+#[test]
+fn get_output_dir_path_from_datatype_returns_val_path() {
+    let mut dc = MockDatasetConfig::new();
+    dc.expect_get_images_val_dir_path().return_const("/data/images/val".to_string());
+    dc.expect_get_labels_val_dir_path().return_const("/data/labels/val".to_string());
+
+    let orch = MultiThreadDataGeneratorOrchestrator::<_,_,_,_,MockFileSystem>::new(&*IGG, &*IG, &*LG, &dc);
+
+    assert_eq!(orch.get_output_dir_path_from_datatype(DataType::VAL), (String::from("/data/images/val"),String::from("/data/labels/val")));
+}
+
+#[test]
+fn get_output_dir_path_from_datatype_returns_test_path() {
+    let mut dc = MockDatasetConfig::new();
+    dc.expect_get_images_test_dir_path().return_const("/data/images/test".to_string());
+    dc.expect_get_labels_test_dir_path().return_const("/data/labels/test".to_string());
+
+    let orch = MultiThreadDataGeneratorOrchestrator::<_,_,_,_,MockFileSystem>::new(&*IGG, &*IG, &*LG, &dc);
+
+    assert_eq!(orch.get_output_dir_path_from_datatype(DataType::TEST), (String::from("/data/images/test"),String::from("/data/labels/test")));
+}
