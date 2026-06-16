@@ -1,6 +1,7 @@
 use clap::Parser;
 use std::path::Path;
 use std::process::ExitCode;
+use std::time::Instant;
 use synthetic_data_generator_for_yolo::infrastructure::builders::editable_image_builder::EditableImageBuilderImpl;
 use synthetic_data_generator_for_yolo::infrastructure::filesystem::SimpleFileSystem;
 use synthetic_data_generator_for_yolo::models::dataset_config::YOLOObbDatasetConfig;
@@ -135,9 +136,19 @@ impl App {
 #[tokio::main]
 async fn main() -> ExitCode {
     let args = Args::parse();
+    let output_dir = args.output_dir.clone();
+    let image_count = args.count.unwrap();
     let app = App::new(args);
+    let start = Instant::now();
     match app.run().await {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(()) => {
+            let elapsed = start.elapsed();
+            println!("---");
+            println!("Output path   : {}", output_dir);
+            println!("Images written: {}", image_count);
+            println!("Elapsed time  : {:.2?}", elapsed);
+            ExitCode::SUCCESS
+        }
         Err(error) => {
             eprintln!("Error: {}", error);
             ExitCode::FAILURE
