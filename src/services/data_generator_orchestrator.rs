@@ -3,12 +3,11 @@ use crate::models::dataset_config::DatasetConfig;
 use crate::models::image_recipe::ImageRecipe;
 use crate::services::image_generator::ImageGenerator;
 use crate::services::image_recipe_generator::ImageRecipeGenerator;
+use crate::services::label_generator::LabelGenerator;
+use async_trait::async_trait;
 use mockall::automock;
 use std::marker::PhantomData;
-use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use async_trait::async_trait;
-use crate::services::label_generator::LabelGenerator;
 
 #[automock]
 #[async_trait]
@@ -63,6 +62,30 @@ impl<
         Self { image_recipe_generator, image_generator, label_generator, dataset_config, filesystem: PhantomData }
     }
 
+    fn log_process_started(on_progress: Option<GenerateImagesProgressCallback>, count: u32) {
+        if let Some(callback) = on_progress {
+            callback(GenerateImagesProgress::Started {
+                total: count,
+            });
+        }
+    }
+
+    fn log_process_done(on_progress: Option<GenerateImagesProgressCallback>, pool_total_count: u32) {
+        if let Some(callback) = on_progress {
+            callback(GenerateImagesProgress::Completed {
+                total: pool_total_count,
+            });
+        }
+    }
+
+    fn log_recipes_generation_done(on_progress: Option<GenerateImagesProgressCallback>, total_recipes: u32) {
+        if let Some(callback) = on_progress {
+            callback(GenerateImagesProgress::RecipesGenerated {
+                total: total_recipes,
+            });
+        }
+    }
+
     pub fn split_recipes(&self, recipes: Vec<ImageRecipe>, train_ratio: usize, val_ratio: usize) -> Result<(Vec<ImageRecipe>, Vec<ImageRecipe>, Vec<ImageRecipe>), String> {
         let train_size = (recipes.len() as f32 * train_ratio as f32 / 100.0) as usize;
         let val_size = (recipes.len() as f32 * val_ratio as f32 / 100.0) as usize;
@@ -91,37 +114,22 @@ impl<
         }
         output_dir_paths
     }
-}
 
-#[async_trait]
-impl<
-    'a,
-    R: ImageRecipeGenerator + Sync,
-    I: ImageGenerator + Sync,
-    L: LabelGenerator + Sync,
-    C: DatasetConfig + Sync,
-    FS: FileSystem + Sync,
-> DataGeneratorOrchestrator for MultiThreadDataGeneratorOrchestrator<'a, R, I, L, C, FS> {
-    async fn generate_images<'cb>(&self, count: u32, train_ratio: usize, val_ratio: usize, _test_ratio: usize,on_progress: Option<GenerateImagesProgressCallback<'cb>>) -> Result<(), String> {
-        if let Some(callback) = on_progress {
-            callback(GenerateImagesProgress::Started {
-                total: count,
-            });
-        }
+    fn split_pool_for_threads(pool: Vec<(ImageRecipe, DataType)>, thread_count: usize) -> Vec<Vec<(ImageRecipe, DataType)>> {
+        let chunk_size = (pool.len() + thread_count - 1) / thread_count; // ceil division
 
-        let recipes: Vec<ImageRecipe> = self.image_recipe_generator.generate(count)
-            .map_err(|e| format!("Failed to generate image recipes: {}", e))?;
+        let subpools: Vec<Vec<(ImageRecipe, DataType)>> = pool
+            .chunks(chunk_size)
+            .map(|c| c.to_vec())
+            .collect();
+        subpools
+    }
 
-        if let Some(callback) = on_progress {
-            callback(GenerateImagesProgress::RecipesGenerated {
-                total: recipes.len() as u32,
-            });
-        }
-
+    fn build_pool_of_recipes(&self, train_ratio: usize, val_ratio: usize, recipes: Vec<ImageRecipe>) -> Result<Vec<(ImageRecipe, DataType)>, String> {
         let (train_recipes, val_recipes, test_recipes) =
             self.split_recipes(recipes, train_ratio, val_ratio)?;
 
-        let mut pool : Vec<(ImageRecipe, DataType)> = Vec::new();
+        let mut pool: Vec<(ImageRecipe, DataType)> = Vec::new();
 
         for recipe in train_recipes {
             pool.push((recipe, DataType::TRAIN));
@@ -134,26 +142,15 @@ impl<
         for recipe in test_recipes {
             pool.push((recipe, DataType::TEST));
         }
+        Ok(pool)
+    }
 
-        let count = pool.len() as u32;
-        let mut i = 0;
-
-        let counter: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
-        let thread_count = 8;
-        let chunk_size = (pool.len() + thread_count - 1) / thread_count; // ceil division
-
-        // Split pool into 4 (roughly) equal subpools.
-        let subpools: Vec<Vec<(ImageRecipe, DataType)>> = pool
-            .chunks(chunk_size)
-            .map(|c| c.to_vec())
-            .collect();
-
-        // Borrow references for the threads.
+    fn run_process_in_threads(&self, on_progress: Option<GenerateImagesProgressCallback>, subpools: Vec<Vec<(ImageRecipe, DataType)>>, pool_total_count: u32) -> Result<(), String> {
         let this = &*self;
+        let counter: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
 
         std::thread::scope(|s| -> Result<(), String> {
             let mut handles = Vec::with_capacity(subpools.len());
-
             for subpool in subpools {
                 let counter = Arc::clone(&counter);
                 let handle = s.spawn(move || -> Result<(), String> {
@@ -172,7 +169,7 @@ impl<
                         if let Some(callback) = on_progress {
                             callback(GenerateImagesProgress::Generating {
                                 count: current,
-                                total: count,
+                                total: pool_total_count,
                             });
                         }
                     }
@@ -188,17 +185,43 @@ impl<
 
             Ok(())
         })?;
+        Ok(())
+    }
+}
 
+#[async_trait]
+impl<
+    'a,
+    R: ImageRecipeGenerator + Sync,
+    I: ImageGenerator + Sync,
+    L: LabelGenerator + Sync,
+    C: DatasetConfig + Sync,
+    FS: FileSystem + Sync,
+> DataGeneratorOrchestrator for MultiThreadDataGeneratorOrchestrator<'a, R, I, L, C, FS> {
+    async fn generate_images<'cb>(&self, count: u32, train_ratio: usize, val_ratio: usize, _test_ratio: usize,on_progress: Option<GenerateImagesProgressCallback<'cb>>) -> Result<(), String> {
+        Self::log_process_started(on_progress, count);
 
-        if let Some(callback) = on_progress {
-            callback(GenerateImagesProgress::Completed {
-                total: count,
-            });
-        }
+        let recipes: Vec<ImageRecipe> = self.image_recipe_generator.generate(count)
+            .map_err(|e| format!("Failed to generate image recipes: {}", e))?;
+
+        Self::log_recipes_generation_done(on_progress, recipes.len() as u32);
+
+        let pool = self.build_pool_of_recipes(train_ratio, val_ratio, recipes)?;
+
+        let pool_total_count = pool.len() as u32;
+
+        let thread_count = 8;
+
+        let subpools = Self::split_pool_for_threads(pool, thread_count);
+
+        self.run_process_in_threads(on_progress, subpools, pool_total_count)?;
+
+        Self::log_process_done(on_progress, pool_total_count);
 
         Ok(())
     }
 }
+
 
 #[derive(Eq, PartialEq, Hash, Debug, Clone)]
 pub enum DataType{
