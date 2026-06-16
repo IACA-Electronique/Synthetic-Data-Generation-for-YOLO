@@ -93,7 +93,20 @@ impl App {
                 &dataset_config);
 
 
-        let on_progress = |progress: GenerateImagesProgress| {
+        let on_progress = Self::build_progress_callback();
+
+        orchestrator.generate_images(
+            self.args.count.unwrap(),
+            self.args.train_ratio,
+            self.args.val_ratio,
+            self.args.test_ratio,
+            Some(&on_progress)).await?;
+
+        Ok(())
+    }
+
+    fn build_progress_callback() -> fn(GenerateImagesProgress) {
+        |progress: GenerateImagesProgress| {
             match progress {
                 GenerateImagesProgress::Started { total } => {
                     println!("Starting generation of {} images...", total);
@@ -111,11 +124,7 @@ impl App {
                     println!("Completed generation of {} images.", total);
                 }
             }
-        };
-
-        orchestrator.generate_images(self.args.count.unwrap(), self.args.train_ratio, self.args.val_ratio, self.args.test_ratio, Some(&on_progress)).await?;
-
-        Ok(())
+        }
     }
 }
 
