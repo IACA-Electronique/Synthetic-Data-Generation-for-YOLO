@@ -34,15 +34,6 @@ impl<B: EditableImageBuilder> ImageGenerator for ImageGeneratorImpl<B> {
         let mut image= B::build_from_nothing(recipe.width, recipe.height);
         image.set_background_from_file(&recipe.background_path);
 
-        for object in recipe.object {
-            image.add_scalable_object_from_file(
-                &object.path,
-                object.x,
-                object.y,
-                object.size,
-                object.angle
-            )
-        }
         if let Some(distractions) = recipe.distraction {
             for distraction in distractions {
                 image.add_scalable_object_from_file(
@@ -54,6 +45,17 @@ impl<B: EditableImageBuilder> ImageGenerator for ImageGeneratorImpl<B> {
                 )
             }
         }
+
+        for object in recipe.object {
+            image.add_scalable_object_from_file(
+                &object.path,
+                object.x,
+                object.y,
+                object.size,
+                object.angle
+            )
+        }
+
         image.save(&format!("{}/{}.png", output_dir, recipe.name));
 
         Ok(())
