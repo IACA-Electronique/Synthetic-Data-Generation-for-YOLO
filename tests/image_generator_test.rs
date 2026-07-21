@@ -130,6 +130,74 @@ fn test_generate_image_no_distractions() {
 }
 
 #[test]
+fn test_generate_one_adds_distractions_before_objects() {
+    let generator = ImageGeneratorImpl::<TestEditableImageBuilder>::new();
+
+    let mut recipe = ImageRecipe::new();
+    recipe.background_path = "bg_order.png".to_string();
+    recipe.width = 640;
+    recipe.height = 480;
+    recipe.object = vec![
+        PrintableElementRecipe::new("obj_order.png".to_string(), 1, 1.0, 0.0, 10, 20),
+    ];
+    recipe.distraction = Some(vec![
+        PrintableElementRecipe::new("dist_order.png".to_string(), 2, 0.5, 45.0, 100, 200),
+    ]);
+
+    let ctx = MockEditableImage::from_nothing_context();
+    ctx.expect()
+        .with(mockall::predicate::eq(640u32), mockall::predicate::eq(480u32))
+        .times(1)
+        .returning(|_, _| {
+            let mut mock_image = MockEditableImage::default();
+
+            mock_image.expect_set_background_from_file()
+                .with(mockall::predicate::eq("bg_order.png"))
+                .times(1)
+                .returning(|_| ());
+
+            // A single sequence forces the distraction call to be recorded
+            // before the object call; mockall fails the test if the object is
+            // added first.
+            let mut seq = mockall::Sequence::new();
+
+            mock_image.expect_add_scalable_object_from_file()
+                .with(
+                    mockall::predicate::eq("dist_order.png"),
+                    mockall::predicate::eq(100u32),
+                    mockall::predicate::eq(200u32),
+                    mockall::predicate::eq(0.5f32),
+                    mockall::predicate::eq(45.0f32),
+                )
+                .times(1)
+                .in_sequence(&mut seq)
+                .returning(|_, _, _, _, _| ());
+
+            mock_image.expect_add_scalable_object_from_file()
+                .with(
+                    mockall::predicate::eq("obj_order.png"),
+                    mockall::predicate::eq(10u32),
+                    mockall::predicate::eq(20u32),
+                    mockall::predicate::eq(1.0f32),
+                    mockall::predicate::eq(0.0f32),
+                )
+                .times(1)
+                .in_sequence(&mut seq)
+                .returning(|_, _, _, _, _| ());
+
+            mock_image.expect_save()
+                .with(mockall::predicate::str::starts_with("/out/test"))
+                .times(1)
+                .returning(|_| ());
+
+            mock_image
+        });
+
+    let result = generator.generate_one(recipe, "/out/test".to_string());
+    assert!(result.is_ok());
+}
+
+#[test]
 fn test_generate_multiple_recipes() {
     let generator = ImageGeneratorImpl::<TestEditableImageBuilder>::new();
 
