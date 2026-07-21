@@ -6,7 +6,7 @@ use synthetic_data_generator_for_yolo::services::image_recipe_generator::{
 
 const OBJECT_COUNT_PER_IMAGE: u32 = 3;
 
-fn build_generator(fs: &MockFileSystem) -> ImageRecipeGeneratorImpl<MockFileSystem> {
+fn build_generator(fs: &MockFileSystem) -> ImageRecipeGeneratorImpl<'_, MockFileSystem> {
     ImageRecipeGeneratorImpl::new(
         fs,
         String::from("backgrounds"),
@@ -52,6 +52,10 @@ fn mock_filesystem() -> MockFileSystem {
         .expect_list_files()
         .with(eq("distractions"))
         .returning(|_| Ok(vec!["distractions/noise.png".to_string()]));
+
+    filesystem
+        .expect_get_image_size()
+        .returning(|_| Ok((100, 100)));
 
     filesystem
 }
@@ -136,6 +140,9 @@ fn generate_queries_background_directory() {
         .expect_list_files()
         .with(eq("distractions"))
         .returning(|_| Ok(vec!["distractions/noise.png".to_string()]));
+    filesystem
+        .expect_get_image_size()
+        .returning(|_| Ok((100, 100)));
 
     let generator = build_generator(&mut filesystem);
 
@@ -198,6 +205,9 @@ fn generate_without_distraction_dir_leaves_distraction_none() {
         .expect_is_dir()
         .with(eq("objects/0"))
         .returning(|_| true);
+    filesystem
+        .expect_get_image_size()
+        .returning(|_| Ok((100, 100)));
     // The distraction directory must never be queried when it is not configured.
     filesystem
         .expect_list_files()
@@ -260,6 +270,10 @@ fn generate_picks_object_directly_when_no_sub_dir_class_exists() {
         .with(eq("distractions"))
         .returning(|_| Ok(vec!["distractions/noise.png".to_string()]));
 
+    filesystem
+        .expect_get_image_size()
+        .returning(|_| Ok((100, 100)));
+
     let generator = build_generator(&filesystem);
 
     let recipes = generator
@@ -299,4 +313,62 @@ fn generate_error_when_sub_dir_class_does_not_exist() {
     let result = generator.generate(1);
 
     assert!(result.is_err());
+}
+
+#[test]
+fn elements_do_not_exceed_image_boundaries() {
+    let filesystem = mock_filesystem();
+    let generator = build_generator(&filesystem);
+
+    let recipes = generator
+        .generate(5)
+        .expect("generation should succeed");
+
+    // The mocked image size is 100x100 for all images
+    let image_size_width = 100;
+    let image_size_height = 100;
+
+    for recipe in &recipes {
+        for object in &recipe.object {
+            let element_width = (object.size * image_size_width as f32) as u32;
+            let element_height = (object.size * image_size_height as f32) as u32;
+
+            assert!(
+                object.x + element_width <= recipe.width,
+                "Object at x={} with width {} exceeds image width {}",
+                object.x,
+                element_width,
+                recipe.width
+            );
+            assert!(
+                object.y + element_height <= recipe.height,
+                "Object at y={} with height {} exceeds image height {}",
+                object.y,
+                element_height,
+                recipe.height
+            );
+        }
+
+        if let Some(distractions) = &recipe.distraction {
+            for distraction in distractions {
+                let element_width = (distraction.size * image_size_width as f32) as u32;
+                let element_height = (distraction.size * image_size_height as f32) as u32;
+
+                assert!(
+                    distraction.x + element_width <= recipe.width,
+                    "Distraction at x={} with width {} exceeds image width {}",
+                    distraction.x,
+                    element_width,
+                    recipe.width
+                );
+                assert!(
+                    distraction.y + element_height <= recipe.height,
+                    "Distraction at y={} with height {} exceeds image height {}",
+                    distraction.y,
+                    element_height,
+                    recipe.height
+                );
+            }
+        }
+    }
 }
