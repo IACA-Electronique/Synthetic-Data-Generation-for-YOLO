@@ -7,7 +7,7 @@
 
 ![](https://img.shields.io/badge/-Rust-000000?style=flat&logo=rust&logoColor=white)
 ![](https://img.shields.io/badge/-YOLO-FFCC00?style=flat&logo=natsdotio&logoColor=white)
-![](https://img.shields.io/badge/version-0.1-blue)
+![](https://img.shields.io/badge/version-0.2-blue)
 </div>
 
 ___
@@ -50,10 +50,10 @@ program \
 > Base of generated data is from [assets/](assets/) directory. 
 
 ```bash
-docker run iacaelectronique/synthetic-data-generator:latest \
- --background-dir ./assets/bg/ \
- --object-dir ./objects/objects/ \
- --output-dir out/gen_100 \
+docker run -v $(pwd):/shared iacaelectronique/synthetic-data-generator-for-yolo:latest \
+ --background-dir /shared/assets/bg/ \
+ --object-dir /shared/objects/ \
+ --output-dir /shared/out/gen_100 \
  -j 8 \
  -c 100
 ```
