@@ -7,7 +7,7 @@
 
 ![](https://img.shields.io/badge/-Rust-000000?style=flat&logo=rust&logoColor=white)
 ![](https://img.shields.io/badge/-YOLO-FFCC00?style=flat&logo=natsdotio&logoColor=white)
-![](https://img.shields.io/badge/version-0.1-blue)
+![](https://img.shields.io/badge/version-0.2-blue)
 </div>
 
 ___
