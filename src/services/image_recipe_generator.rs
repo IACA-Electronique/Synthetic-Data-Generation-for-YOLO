@@ -89,7 +89,8 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
             return Err(format!("No object images found for class {} in {}", class.unwrap_or(0), self.object_dir));
         }
         let index = Self::random(0, objects.len() as u32 - 1) as usize;
-        let mut object_recipe = self.build_element(objects[index].clone());
+        let mut object_recipe = self.build_element(objects[index].clone())
+            .map_err(|err| format!("Failed to build object recipe: {}", err))?;
         object_recipe.class = class.unwrap_or(0);
         Ok(object_recipe)
     }
@@ -105,20 +106,40 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
         if distractions.is_empty() {
             return Err(format!("No distraction images found in {}", dir));
         }
+
         let index = Self::random(0, distractions.len() as u32 - 1) as usize;
-        Ok(self.build_element(distractions[index].clone()))
+        self.build_element(distractions[index].clone())
+            .map_err(|err| format!("Failed to build distraction recipe: {}", err))
     }
 
-    fn build_element(&self, path: String) -> PrintableElementRecipe {
+    fn build_element(&self, path: String) -> Result<PrintableElementRecipe, String> {
         let mut element = PrintableElementRecipe::default();
+
+        let (element_width, element_height) = self.filesystem.get_image_size(&path)
+            .map_err(|err| format!("Failed to get image size for {}: {}", path, err))?;
 
         element.path = path;
         element.size =  Self::random_f32(0.1, 1.0);
         element.angle = Self::random_f32(0.0, 360.0);
-        element.x = Self::random(0, self.width);
-        element.y = Self::random(0, self.height);
 
-        element
+        let element_final_width = (element.size * element_width as f32) as u32;
+        let element_final_height = (element.size * element_height as f32) as u32;
+
+        let available_width = if self.width > element_final_width {
+            self.width - element_final_width
+        } else {
+            1
+        };
+        let available_height = if self.height > element_final_height {
+            self.height - element_final_height
+        } else {
+            1
+        };
+
+        element.x = Self::random(0, available_width);
+        element.y = Self::random(0, available_height);
+
+        Ok(element)
     }
 
     fn random(min: u32, max: u32) -> u32 {
