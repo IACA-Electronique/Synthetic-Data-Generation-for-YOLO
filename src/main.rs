@@ -35,6 +35,12 @@ struct Args {
     #[arg(long, short = 'c', required = true)]
     count: Option<u32>,
 
+    #[arg(long, default_value = "3")]
+    max_object_count_per_image: u32,
+
+    #[arg(long, default_value = "2")]
+    max_distraction_count_per_image: u32,
+
     #[arg(long, default_value = "80")]
     train_ratio: usize,
 
@@ -101,6 +107,8 @@ impl App {
 
         orchestrator.generate_images(
             self.args.count.unwrap(),
+            self.args.max_object_count_per_image,
+            self.args.max_distraction_count_per_image,
             self.args.train_ratio,
             self.args.val_ratio,
             self.args.test_ratio,

@@ -15,6 +15,8 @@ pub trait DataGeneratorOrchestrator {
     async fn generate_images<'cb>(
         &self,
         count: u32,
+        max_object_count_per_image: u32,
+        max_distraction_count_per_image: u32,
         train_ratio: usize,
         val_ratio: usize,
         test_ratio: usize,
@@ -208,6 +210,8 @@ impl<
     async fn generate_images<'cb>(
         &self,
         count: u32,
+        max_object_count_per_image: u32,
+        max_distraction_count_per_image: u32,
         train_ratio: usize,
         val_ratio: usize,
         _test_ratio: usize,
@@ -228,7 +232,7 @@ impl<
 
         Self::log_process_started(on_progress, count);
 
-        let recipes: Vec<ImageRecipe> = self.image_recipe_generator.generate(count)
+        let recipes: Vec<ImageRecipe> = self.image_recipe_generator.generate(count, max_object_count_per_image, max_distraction_count_per_image)
             .map_err(|e| format!("Failed to generate image recipes: {}", e))?;
 
         Self::log_recipes_generation_done(on_progress, recipes.len() as u32);

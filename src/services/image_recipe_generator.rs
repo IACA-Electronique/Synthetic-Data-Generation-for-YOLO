@@ -8,13 +8,12 @@ pub trait ImageRecipeGenerator {
     fn generate(
         &self,
         count: u32,
+        max_object_count_per_image: u32,
+        max_distraction_count_per_image: u32,
     ) -> Result<Vec<ImageRecipe>, String>;
 }
 
 // ###################################### IMPL #####################################################
-
-const OBJECT_COUNT_PER_IMAGE: u32 = 3;
-const DISTRACTION_COUNT_PER_IMAGE: u32 = 2;
 
 pub struct ImageRecipeGeneratorImpl<'a, FS: FileSystem> {
     filesystem: &'a FS,
@@ -155,6 +154,8 @@ impl<'a, FS: FileSystem> ImageRecipeGenerator for ImageRecipeGeneratorImpl<'a, F
     fn generate(
         &self,
         count: u32,
+        max_object_count_per_image: u32,
+        max_distraction_count_per_image: u32,
     ) -> Result<Vec<ImageRecipe>, String> {
         let mut recipes: Vec<ImageRecipe> = Vec::new();
 
@@ -165,7 +166,7 @@ impl<'a, FS: FileSystem> ImageRecipeGenerator for ImageRecipeGeneratorImpl<'a, F
             image.height = self.height;
             image.background_path = self.pick_background()?;
 
-            let object_count = ImageRecipeGeneratorImpl::<FS>::random(1, OBJECT_COUNT_PER_IMAGE);
+            let object_count = ImageRecipeGeneratorImpl::<FS>::random(1, max_object_count_per_image);
             for _ in 0..object_count {
                 let object = self.pick_object()?;
                 image.object.push(object);
@@ -174,7 +175,7 @@ impl<'a, FS: FileSystem> ImageRecipeGenerator for ImageRecipeGeneratorImpl<'a, F
             if self.distraction_dir.is_some() {
                 let mut distractions: Vec<PrintableElementRecipe> = Vec::new();
                 let distraction_count =
-                    ImageRecipeGeneratorImpl::<FS>::random(1, DISTRACTION_COUNT_PER_IMAGE);
+                    ImageRecipeGeneratorImpl::<FS>::random(1, max_distraction_count_per_image);
                 for _ in 0..distraction_count {
                     distractions.push(self.pick_distraction()?);
                 }
