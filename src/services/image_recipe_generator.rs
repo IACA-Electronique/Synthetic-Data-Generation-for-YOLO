@@ -165,8 +165,8 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
         let size =  Self::random_f32(0.1, 0.7);
         element.angle = Self::random_f32(0.0, 360.0);
 
-        let width_ratio = element_height as f32 / element_width as f32;
-        let height_ratio = element_width as f32 / element_height as f32;
+        let width_ratio = element_width as f32 / element_height as f32;
+        let height_ratio = element_height as f32 / element_width as f32;
 
         element.width = (self.width as f32 * size * width_ratio) as u32;
         element.height = (self.height as f32 * size * height_ratio) as u32;
