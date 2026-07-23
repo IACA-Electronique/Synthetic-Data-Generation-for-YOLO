@@ -29,10 +29,10 @@ fn test_generate_image_with_object_and_distraction() {
     recipe.width = 640;
     recipe.height = 480;
     recipe.object = vec![
-        PrintableElementRecipe::new("obj1.png".to_string(), 1, 1.0, 0.0, 10, 20),
+        PrintableElementRecipe::new("obj1.png".to_string(), 1, 50, 100, 0.0, 10, 20),
     ];
     recipe.distraction = Some(vec![
-        PrintableElementRecipe::new("dist1.png".to_string(), 2, 0.5, 45.0, 100, 200),
+        PrintableElementRecipe::new("dist1.png".to_string(), 2, 75, 50, 45.0, 100, 200),
     ]);
 
     let ctx = MockEditableImage::from_nothing_context();
@@ -47,27 +47,29 @@ fn test_generate_image_with_object_and_distraction() {
                 .times(1)
                 .returning(|_| ());
 
-            mock_image.expect_add_scalable_object_from_file()
+            mock_image.expect_add_object_from_file()
                 .with(
                     mockall::predicate::eq("obj1.png"),
                     mockall::predicate::eq(10u32),
                     mockall::predicate::eq(20u32),
-                    mockall::predicate::eq(1.0f32),
+                    mockall::predicate::eq(50u32),
+                    mockall::predicate::eq(100u32),
                     mockall::predicate::eq(0.0f32),
                 )
                 .times(1)
-                .returning(|_, _, _, _, _| ());
+                .returning(|_, _, _, _, _, _| ());
 
-            mock_image.expect_add_scalable_object_from_file()
+            mock_image.expect_add_object_from_file()
                 .with(
                     mockall::predicate::eq("dist1.png"),
                     mockall::predicate::eq(100u32),
                     mockall::predicate::eq(200u32),
-                    mockall::predicate::eq(0.5f32),
+                    mockall::predicate::eq(75u32),
+                    mockall::predicate::eq(50u32),
                     mockall::predicate::eq(45.0f32),
                 )
                 .times(1)
-                .returning(|_, _, _, _, _| ());
+                .returning(|_, _, _, _, _, _| ());
 
             mock_image.expect_save()
                 .with(mockall::predicate::str::starts_with("/out/test"))
@@ -90,7 +92,7 @@ fn test_generate_image_no_distractions() {
     recipe.width = 320;
     recipe.height = 240;
     recipe.object = vec![
-        PrintableElementRecipe::new("obj2.png".to_string(), 3, 2.0, 90.0, 30, 40),
+        PrintableElementRecipe::new("obj2.png".to_string(), 3, 120, 160, 90.0, 30, 40),
     ];
     recipe.distraction = None;
 
@@ -106,16 +108,17 @@ fn test_generate_image_no_distractions() {
                 .times(1)
                 .returning(|_| ());
 
-            mock_image.expect_add_scalable_object_from_file()
+            mock_image.expect_add_object_from_file()
                 .with(
                     mockall::predicate::eq("obj2.png"),
                     mockall::predicate::eq(30u32),
                     mockall::predicate::eq(40u32),
-                    mockall::predicate::eq(2.0f32),
+                    mockall::predicate::eq(120u32),
+                    mockall::predicate::eq(160u32),
                     mockall::predicate::eq(90.0f32),
                 )
                 .times(1)
-                .returning(|_, _, _, _, _| ());
+                .returning(|_, _, _, _, _, _| ());
 
             mock_image.expect_save()
                 .with(mockall::predicate::str::starts_with("/out/test"))
@@ -138,10 +141,10 @@ fn test_generate_one_adds_distractions_before_objects() {
     recipe.width = 640;
     recipe.height = 480;
     recipe.object = vec![
-        PrintableElementRecipe::new("obj_order.png".to_string(), 1, 1.0, 0.0, 10, 20),
+        PrintableElementRecipe::new("obj_order.png".to_string(), 1, 80, 100, 0.0, 10, 20),
     ];
     recipe.distraction = Some(vec![
-        PrintableElementRecipe::new("dist_order.png".to_string(), 2, 0.5, 45.0, 100, 200),
+        PrintableElementRecipe::new("dist_order.png".to_string(), 2, 60, 80, 45.0, 100, 200),
     ]);
 
     let ctx = MockEditableImage::from_nothing_context();
@@ -161,29 +164,31 @@ fn test_generate_one_adds_distractions_before_objects() {
             // added first.
             let mut seq = mockall::Sequence::new();
 
-            mock_image.expect_add_scalable_object_from_file()
+            mock_image.expect_add_object_from_file()
                 .with(
                     mockall::predicate::eq("dist_order.png"),
                     mockall::predicate::eq(100u32),
                     mockall::predicate::eq(200u32),
-                    mockall::predicate::eq(0.5f32),
+                    mockall::predicate::eq(60u32),
+                    mockall::predicate::eq(80u32),
                     mockall::predicate::eq(45.0f32),
                 )
                 .times(1)
                 .in_sequence(&mut seq)
-                .returning(|_, _, _, _, _| ());
+                .returning(|_, _, _, _, _, _| ());
 
-            mock_image.expect_add_scalable_object_from_file()
+            mock_image.expect_add_object_from_file()
                 .with(
                     mockall::predicate::eq("obj_order.png"),
                     mockall::predicate::eq(10u32),
                     mockall::predicate::eq(20u32),
-                    mockall::predicate::eq(1.0f32),
+                    mockall::predicate::eq(80u32),
+                    mockall::predicate::eq(100u32),
                     mockall::predicate::eq(0.0f32),
                 )
                 .times(1)
                 .in_sequence(&mut seq)
-                .returning(|_, _, _, _, _| ());
+                .returning(|_, _, _, _, _, _| ());
 
             mock_image.expect_save()
                 .with(mockall::predicate::str::starts_with("/out/test"))

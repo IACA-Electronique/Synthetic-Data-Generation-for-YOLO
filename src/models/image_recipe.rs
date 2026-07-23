@@ -25,18 +25,20 @@ impl ImageRecipe {
 pub struct PrintableElementRecipe {
     pub path: String,
     pub class: u32,
-    pub size: f32,
+    pub width: u32,
+    pub height: u32,
     pub angle: f32,
     pub x: u32,
     pub y: u32,
 }
 
 impl PrintableElementRecipe {
-    pub fn new(path: String, id: u32, size: f32, angle: f32, x: u32, y: u32) -> Self {
+    pub fn new(path: String, id: u32, width: u32, height: u32, angle: f32, x: u32, y: u32) -> Self {
         Self {
             path,
             class: id,
-            size,
+            width,
+            height,
             angle,
             x,
             y,

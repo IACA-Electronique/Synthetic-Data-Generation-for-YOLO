@@ -325,48 +325,38 @@ fn elements_do_not_exceed_image_boundaries() {
         .generate(5, DEFAULT_MAX_OBJECT_COUNT, DEFAULT_MAX_DISTRACTION_COUNT)
         .expect("generation should succeed");
 
-    // The mocked image size is 100x100 for all images
-    let image_size_width = 100;
-    let image_size_height = 100;
-
     for recipe in &recipes {
         for object in &recipe.object {
-            let element_width = (object.size * image_size_width as f32) as u32;
-            let element_height = (object.size * image_size_height as f32) as u32;
-
             assert!(
-                object.x + element_width <= recipe.width,
+                object.x + object.width <= recipe.width,
                 "Object at x={} with width {} exceeds image width {}",
                 object.x,
-                element_width,
+                object.width,
                 recipe.width
             );
             assert!(
-                object.y + element_height <= recipe.height,
+                object.y + object.height <= recipe.height,
                 "Object at y={} with height {} exceeds image height {}",
                 object.y,
-                element_height,
+                object.height,
                 recipe.height
             );
         }
 
         if let Some(distractions) = &recipe.distraction {
             for distraction in distractions {
-                let element_width = (distraction.size * image_size_width as f32) as u32;
-                let element_height = (distraction.size * image_size_height as f32) as u32;
-
                 assert!(
-                    distraction.x + element_width <= recipe.width,
+                    distraction.x + distraction.width <= recipe.width,
                     "Distraction at x={} with width {} exceeds image width {}",
                     distraction.x,
-                    element_width,
+                    distraction.width,
                     recipe.width
                 );
                 assert!(
-                    distraction.y + element_height <= recipe.height,
+                    distraction.y + distraction.height <= recipe.height,
                     "Distraction at y={} with height {} exceeds image height {}",
                     distraction.y,
-                    element_height,
+                    distraction.height,
                     recipe.height
                 );
             }

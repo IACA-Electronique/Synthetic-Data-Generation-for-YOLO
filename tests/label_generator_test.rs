@@ -39,12 +39,7 @@ fn test_single_object_no_rotation_writes_correct_line() {
         .times(1)
         .returning(|_, _| Ok(()));
 
-    mock_fs
-        .expect_get_image_size()
-        .times(1)
-        .returning(|_| Ok((200, 200)));
-
-    let object = PrintableElementRecipe::new("obj.png".to_string(), 0, 1.0, 0.0, 10, 10);
+    let object = PrintableElementRecipe::new("obj.png".to_string(), 0, 200, 200, 0.0, 10, 10);
     let generator = ObbYoloV11LabelGenerator::new(&mock_fs);
     let result = generator.generate_one(make_recipe("scene", vec![object]), "out".to_string());
 
@@ -61,12 +56,7 @@ fn test_single_object_half_turn_writes_correct_line() {
         .times(1)
         .returning(|_, _| Ok(()));
 
-    mock_fs
-        .expect_get_image_size()
-        .times(1)
-        .returning(|_| Ok((200, 200)));
-
-    let object = PrintableElementRecipe::new("obj.png".to_string(), 1, 1.0, PI, 100, 100);
+    let object = PrintableElementRecipe::new("obj.png".to_string(), 1, 200, 200, PI, 100, 100);
     let generator = ObbYoloV11LabelGenerator::new(&mock_fs);
     let result = generator.generate_one(make_recipe("frame", vec![object]), "labels".to_string());
 
@@ -82,14 +72,9 @@ fn test_multiple_objects_writes_one_line_per_object() {
         .times(1)
         .returning(|_, _| Ok(()));
 
-    mock_fs
-        .expect_get_image_size()
-        .times(2)
-        .returning(|_| Ok((200, 200)));
-
     let objects = vec![
-        PrintableElementRecipe::new("a.png".to_string(), 0, 1.0, 0.0, 10, 10),
-        PrintableElementRecipe::new("b.png".to_string(), 2, 1.0, PI, 100, 100),
+        PrintableElementRecipe::new("a.png".to_string(), 0, 200, 200, 0.0, 10, 10),
+        PrintableElementRecipe::new("b.png".to_string(), 2, 200, 200, PI, 100, 100),
     ];
     let generator = ObbYoloV11LabelGenerator::new(&mock_fs);
     let result = generator.generate_one(make_recipe("multi", objects), "out".to_string());
