@@ -25,6 +25,8 @@ program \
   [--distraction-dir <path_to_distraction_images>] \
   --output-dir <path_to_output_directory> \
   --count <number_of_images> \
+  [--max-object-count-per-image <max_objects>] \
+  [--max-distraction-count-per-image <max_distractions>] \
   [--train-ratio <percent>] \
   [--val-ratio <percent>] \
   [--test-ratio <percent>] \
@@ -38,6 +40,8 @@ program \
 | `--distraction-dir` | | no | | Path to distraction images |
 | `--output-dir` | | yes | | Path to output directory |
 | `--count` | `-c` | yes | | Number of images to generate |
+| `--max-object-count-per-image` | | no | `3` | Maximum number of objects per generated image |
+| `--max-distraction-count-per-image` | | no | `2` | Maximum number of distractions per generated image |
 | `--train-ratio` | | no | `80` | Percentage of images for training |
 | `--val-ratio` | | no | `10` | Percentage of images for validation |
 | `--test-ratio` | | no | `10` | Percentage of images for testing |
@@ -54,6 +58,8 @@ docker run -v $(pwd):/shared iacaelectronique/synthetic-data-generator-for-yolo:
  --background-dir /shared/assets/bg/ \
  --object-dir /shared/objects/ \
  --output-dir /shared/out/gen_100 \
+ --max-object-count-per-image 1 \
+ --max-distraction-count-per-image 2 \
  -j 8 \
  -c 100
 ```
