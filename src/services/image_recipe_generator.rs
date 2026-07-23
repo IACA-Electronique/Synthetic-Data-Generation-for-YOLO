@@ -1,6 +1,6 @@
-use mockall::automock;
 use crate::infrastructure::filesystem::FileSystem;
 use crate::models::image_recipe::{ImageRecipe, PrintableElementRecipe};
+use mockall::automock;
 use rand::Rng;
 
 #[automock]
@@ -116,6 +116,46 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
     }
 
     fn build_element(&self, path: String, cache: Option<&mut Vec<PrintableElementRecipe>>) -> Result<PrintableElementRecipe, String> {
+        if let Some(cache) = cache {
+             match self.build_element_with_cache_collision_check(path.clone(), cache) {
+                Err(e) =>  {
+                    eprintln!("Warning: {}", e);
+                    Ok(self.generate_element(path)?)
+                }
+                Ok(element) =>{
+                    Ok(element)
+                }
+            }
+        }else {
+            self.generate_element(path)
+        }
+    }
+
+    fn build_element_with_cache_collision_check(&self, path: String, cache: &mut Vec<PrintableElementRecipe>) -> Result<PrintableElementRecipe, String> {
+        const MAX_PLACEMENT_ATTEMPTS: u32 = 50;
+        let mut i = 0;
+        let mut final_element: Option<PrintableElementRecipe> = None;
+
+        while !final_element.is_none() && i < MAX_PLACEMENT_ATTEMPTS {
+            let current_element = self.generate_element(path.clone())?;
+
+            if !self.has_collision(&current_element, cache) {
+                final_element = Some(current_element);
+            }
+
+            i += 1;
+        }
+
+        if final_element.is_none() {
+            Err(format!("Could not find collision-free position after {} attempts for {}", MAX_PLACEMENT_ATTEMPTS, path))
+        }else {
+            let recipe = final_element.unwrap();
+            cache.push(recipe.clone());
+            Ok(recipe)
+        }
+    }
+
+    fn generate_element(&self, path: String) -> Result<PrintableElementRecipe, String> {
         let mut element = PrintableElementRecipe::default();
 
         let (element_width, element_height) = self.filesystem.get_image_size(&path)
@@ -144,32 +184,6 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
 
         element.x = Self::random(0, available_width);
         element.y = Self::random(0, available_height);
-
-        const MAX_PLACEMENT_ATTEMPTS: u32 = 50;
-        let mut placed = false;
-        let mut i = 0;
-
-        while cache.is_some() && !placed && i < MAX_PLACEMENT_ATTEMPTS {
-            element.x = Self::random(0, available_width);
-            element.y = Self::random(0, available_height);
-
-            let cached_elements = cache.as_ref().unwrap();
-
-
-            if !self.has_collision(&element, cached_elements) {
-                placed = true;
-            }
-
-            i += 1;
-        }
-
-        if !placed && cache.is_some() {
-            eprintln!("Warning: Could not find collision-free position after {} attempts for {}", MAX_PLACEMENT_ATTEMPTS, element.path);
-        }
-
-        if cache.is_some() {
-            cache.unwrap().push(element.clone());
-        }
 
         Ok(element)
     }
