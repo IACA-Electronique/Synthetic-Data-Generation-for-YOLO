@@ -127,7 +127,7 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
 
     fn build_element(&self, path: String, cache: Option<&mut Vec<PrintableElementRecipe>>) -> Result<Option<PrintableElementRecipe>, String> {
         if let Some(cache) = cache {
-             match self.build_element_with_cache_collision_check(path.clone(), cache) {
+             match self.build_element_with_cache_collision_handling(path.clone(), cache) {
                 Err(e) =>  {
                     eprintln!("Warning: {}", e);
                     Ok(None)
@@ -148,7 +148,7 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
         }
     }
 
-    fn build_element_with_cache_collision_check(&self, path: String, cache: &mut Vec<PrintableElementRecipe>) -> Result<PrintableElementRecipe, String> {
+    fn build_element_with_cache_collision_handling(&self, path: String, cache: &mut Vec<PrintableElementRecipe>) -> Result<PrintableElementRecipe, String> {
         const MAX_PLACEMENT_ATTEMPTS: u32 = 50;
         let mut i = 0;
         let mut final_element: PrintableElementRecipe = self.generate_element(path.clone())?;
