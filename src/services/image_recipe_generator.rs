@@ -57,16 +57,19 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
 
     fn pick_object(
         &self,
+        object_cache: &mut Vec<PrintableElementRecipe>,
     ) -> Result<PrintableElementRecipe, String> {
 
         let class_dir = self.filesystem.list_subdirectories(&self.object_dir)?;
         if class_dir.is_empty() {
             // NOTE: Class directory not found, pick directly from object directory and assume there are only one class
-            Ok(self.pick_object_by_class(None)?)
+            let object_picked = self.pick_object_by_class(None, object_cache)?;
+            Ok(object_picked)
         }else {
             let class = Self::random(0, class_dir.len() as u32 - 1);
             if self.filesystem.is_dir(&format!("{}/{}", self.object_dir, class)) {
-                Ok(self.pick_object_by_class(Some(class))?)
+                let object_picked = self.pick_object_by_class(Some(class), object_cache)?;
+                Ok(object_picked)
             }else {
                 Err(format!("Class directory {} not found", class))
             }
@@ -76,6 +79,7 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
     fn pick_object_by_class(
         &self,
         class: Option<u32>,
+        object_cache: &mut Vec<PrintableElementRecipe>,
     ) -> Result<PrintableElementRecipe, String> {
         let class_dir_path;
         if class.is_none() {
@@ -88,7 +92,7 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
             return Err(format!("No object images found for class {} in {}", class.unwrap_or(0), self.object_dir));
         }
         let index = Self::random(0, objects.len() as u32 - 1) as usize;
-        let mut object_recipe = self.build_element(objects[index].clone())
+        let mut object_recipe = self.build_element(objects[index].clone(), Some(object_cache))
             .map_err(|err| format!("Failed to build object recipe: {}", err))?;
         object_recipe.class = class.unwrap_or(0);
         Ok(object_recipe)
@@ -107,11 +111,11 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
         }
 
         let index = Self::random(0, distractions.len() as u32 - 1) as usize;
-        self.build_element(distractions[index].clone())
+        self.build_element(distractions[index].clone(), None)
             .map_err(|err| format!("Failed to build distraction recipe: {}", err))
     }
 
-    fn build_element(&self, path: String) -> Result<PrintableElementRecipe, String> {
+    fn build_element(&self, path: String, cache: Option<&mut Vec<PrintableElementRecipe>>) -> Result<PrintableElementRecipe, String> {
         let mut element = PrintableElementRecipe::default();
 
         let (element_width, element_height) = self.filesystem.get_image_size(&path)
@@ -141,7 +145,76 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
         element.x = Self::random(0, available_width);
         element.y = Self::random(0, available_height);
 
+        const MAX_PLACEMENT_ATTEMPTS: u32 = 50;
+        let mut placed = false;
+        let mut i = 0;
+
+        while cache.is_some() && !placed && i < MAX_PLACEMENT_ATTEMPTS {
+            element.x = Self::random(0, available_width);
+            element.y = Self::random(0, available_height);
+
+            let cached_elements = cache.as_ref().unwrap();
+
+
+            if !self.has_collision(&element, element_final_width, element_final_height, cached_elements) {
+                placed = true;
+            }
+
+            i += 1;
+        }
+
+        if !placed && cache.is_some() {
+            eprintln!("Warning: Could not find collision-free position after {} attempts for {}", MAX_PLACEMENT_ATTEMPTS, element.path);
+        }
+
+        if cache.is_some() {
+            cache.unwrap().push(element.clone());
+        }
+
         Ok(element)
+    }
+
+    fn has_collision(
+        &self,
+        element: &PrintableElementRecipe,
+        element_width: u32,
+        element_height: u32,
+        cached_elements: &[PrintableElementRecipe],
+    ) -> bool {
+        for cached in cached_elements {
+            if self.rectangles_overlap(
+                element.x,
+                element.y,
+                element_height,
+                element_height,
+                cached.x,
+                cached.y,
+                element_width,
+                element_height,
+            ) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn rectangles_overlap(
+        &self,
+        x1: u32,
+        y1: u32,
+        w1: u32,
+        h1: u32,
+        x2: u32,
+        y2: u32,
+        w2: u32,
+        h2: u32,
+    ) -> bool {
+        let x1_right = x1 + w1;
+        let x2_right = x2 + w2;
+        let y1_bottom = y1 + h1;
+        let y2_bottom = y2 + h2;
+
+        x1 < x2_right && x2 < x1_right && y1 < y2_bottom && y2 < y1_bottom
     }
 
     fn random(min: u32, max: u32) -> u32 {
@@ -161,6 +234,7 @@ impl<'a, FS: FileSystem> ImageRecipeGenerator for ImageRecipeGeneratorImpl<'a, F
         max_distraction_count_per_image: u32,
     ) -> Result<Vec<ImageRecipe>, String> {
         let mut recipes: Vec<ImageRecipe> = Vec::new();
+        let mut object_cache: Vec<PrintableElementRecipe> = Vec::new();
 
         for i in 0..count {
             let mut image = ImageRecipe::new();
@@ -171,7 +245,7 @@ impl<'a, FS: FileSystem> ImageRecipeGenerator for ImageRecipeGeneratorImpl<'a, F
 
             let object_count = ImageRecipeGeneratorImpl::<FS>::random(1, max_object_count_per_image);
             for _ in 0..object_count {
-                let object = self.pick_object()?;
+                let object = self.pick_object(&mut object_cache)?;
                 image.object.push(object);
             }
 
