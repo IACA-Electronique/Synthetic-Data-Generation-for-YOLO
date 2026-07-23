@@ -36,22 +36,24 @@ impl<B: EditableImageBuilder> ImageGenerator for ImageGeneratorImpl<B> {
 
         if let Some(distractions) = recipe.distraction {
             for distraction in distractions {
-                image.add_scalable_object_from_file(
+                image.add_object_from_file(
                     &distraction.path,
                     distraction.x,
                     distraction.y,
-                    distraction.size,
+                    distraction.width,
+                    distraction.height,
                     distraction.angle
                 )
             }
         }
 
         for object in recipe.object {
-            image.add_scalable_object_from_file(
+            image.add_object_from_file(
                 &object.path,
                 object.x,
                 object.y,
-                object.size,
+                object.width,
+                object.height,
                 object.angle
             )
         }

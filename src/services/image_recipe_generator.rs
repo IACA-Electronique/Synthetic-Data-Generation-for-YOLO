@@ -122,22 +122,22 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
             .map_err(|err| format!("Failed to get image size for {}: {}", path, err))?;
 
         element.path = path;
-        element.size =  Self::random_f32(0.1, 0.7);
+        let size =  Self::random_f32(0.1, 0.7);
         element.angle = Self::random_f32(0.0, 360.0);
 
         let width_ratio = element_height as f32 / element_width as f32;
         let height_ratio = element_width as f32 / element_height as f32;
 
-        let element_final_width = (self.width as f32 * element.size * width_ratio) as u32;
-        let element_final_height = (self.height as f32 * element.size * height_ratio) as u32;
+        element.width = (self.width as f32 * size * width_ratio) as u32;
+        element.height = (self.height as f32 * size * height_ratio) as u32;
 
-        let available_width = if self.width > element_final_width {
-            self.width - element_final_width
+        let available_width = if self.width > element.width {
+            self.width - element.width
         } else {
             1
         };
-        let available_height = if self.height > element_final_height {
-            self.height - element_final_height
+        let available_height = if self.height > element.height {
+            self.height - element.height
         } else {
             1
         };
@@ -156,7 +156,7 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
             let cached_elements = cache.as_ref().unwrap();
 
 
-            if !self.has_collision(&element, element_final_width, element_final_height, cached_elements) {
+            if !self.has_collision(&element, cached_elements) {
                 placed = true;
             }
 
@@ -177,20 +177,18 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
     fn has_collision(
         &self,
         element: &PrintableElementRecipe,
-        element_width: u32,
-        element_height: u32,
         cached_elements: &[PrintableElementRecipe],
     ) -> bool {
         for cached in cached_elements {
             if self.rectangles_overlap(
                 element.x,
                 element.y,
-                element_height,
-                element_height,
+                element.width,
+                element.height,
                 cached.x,
                 cached.y,
-                element_width,
-                element_height,
+                cached.width,
+                cached.height,
             ) {
                 return true;
             }
