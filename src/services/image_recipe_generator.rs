@@ -55,10 +55,10 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
         Ok(backgrounds[index].clone())
     }
 
-    fn pick_object(
+    fn try_to_pick_object(
         &self,
         object_cache: &mut Vec<PrintableElementRecipe>,
-    ) -> Result<PrintableElementRecipe, String> {
+    ) -> Result<Option<PrintableElementRecipe>, String> {
 
         let class_dir = self.filesystem.list_subdirectories(&self.object_dir)?;
         if class_dir.is_empty() {
@@ -80,7 +80,7 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
         &self,
         class: Option<u32>,
         object_cache: &mut Vec<PrintableElementRecipe>,
-    ) -> Result<PrintableElementRecipe, String> {
+    ) -> Result<Option<PrintableElementRecipe>, String> {
         let class_dir_path;
         if class.is_none() {
             class_dir_path = self.object_dir.clone();
@@ -92,10 +92,15 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
             return Err(format!("No object images found for class {} in {}", class.unwrap_or(0), self.object_dir));
         }
         let index = Self::random(0, objects.len() as u32 - 1) as usize;
-        let mut object_recipe = self.build_element(objects[index].clone(), Some(object_cache))
+        let mut object_recipe_option = self.build_element(objects[index].clone(), Some(object_cache))
             .map_err(|err| format!("Failed to build object recipe: {}", err))?;
-        object_recipe.class = class.unwrap_or(0);
-        Ok(object_recipe)
+        if object_recipe_option.is_none() {
+            Ok(None)
+        }else {
+            let object_recipe = object_recipe_option.as_mut().unwrap();
+            object_recipe.class = class.unwrap_or(0);
+            Ok(Some(object_recipe.clone()))
+        }
     }
 
     fn pick_distraction(
@@ -111,47 +116,60 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
         }
 
         let index = Self::random(0, distractions.len() as u32 - 1) as usize;
-        self.build_element(distractions[index].clone(), None)
-            .map_err(|err| format!("Failed to build distraction recipe: {}", err))
+        let distraction = self.build_element(distractions[index].clone(), None)
+            .map_err(|err| format!("Failed to build distraction recipe: {}", err))?;
+        if distraction.is_none() {
+            Err("Failed to build distraction recipe".to_string())
+        }else {
+            Ok(distraction.unwrap())
+        }
     }
 
-    fn build_element(&self, path: String, cache: Option<&mut Vec<PrintableElementRecipe>>) -> Result<PrintableElementRecipe, String> {
+    fn build_element(&self, path: String, cache: Option<&mut Vec<PrintableElementRecipe>>) -> Result<Option<PrintableElementRecipe>, String> {
         if let Some(cache) = cache {
              match self.build_element_with_cache_collision_check(path.clone(), cache) {
                 Err(e) =>  {
                     eprintln!("Warning: {}", e);
-                    Ok(self.generate_element(path)?)
+                    Ok(None)
                 }
                 Ok(element) =>{
-                    Ok(element)
+                    Ok(Some(element))
                 }
             }
         }else {
-            self.generate_element(path)
+            match self.generate_element(path) {
+                Err(e) =>  {
+                    Err(e)
+                }
+                Ok(element) =>{
+                    Ok(Some(element))
+                }
+            }
         }
     }
 
     fn build_element_with_cache_collision_check(&self, path: String, cache: &mut Vec<PrintableElementRecipe>) -> Result<PrintableElementRecipe, String> {
         const MAX_PLACEMENT_ATTEMPTS: u32 = 50;
         let mut i = 0;
-        let mut final_element: Option<PrintableElementRecipe> = None;
+        let mut final_element: PrintableElementRecipe = self.generate_element(path.clone())?;
+        let mut placed = false;
 
-        while !final_element.is_none() && i < MAX_PLACEMENT_ATTEMPTS {
-            let current_element = self.generate_element(path.clone())?;
-
-            if !self.has_collision(&current_element, cache) {
-                final_element = Some(current_element);
+        while !placed && i < MAX_PLACEMENT_ATTEMPTS {
+            if self.has_collision(&final_element, cache) {
+                let current_element = self.generate_element(path.clone())?;
+                final_element = current_element;
+            }else {
+                placed = true;
             }
 
             i += 1;
         }
 
-        if final_element.is_none() {
+        if !placed && i > 0 {
             Err(format!("Could not find collision-free position after {} attempts for {}", MAX_PLACEMENT_ATTEMPTS, path))
         }else {
-            let recipe = final_element.unwrap();
-            cache.push(recipe.clone());
-            Ok(recipe)
+            cache.push(final_element.clone());
+            Ok(final_element)
         }
     }
 
@@ -191,7 +209,7 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
     fn has_collision(
         &self,
         element: &PrintableElementRecipe,
-        cached_elements: &[PrintableElementRecipe],
+        cached_elements: & Vec<PrintableElementRecipe>,
     ) -> bool {
         for cached in cached_elements {
             if self.rectangles_overlap(
@@ -246,10 +264,10 @@ impl<'a, FS: FileSystem> ImageRecipeGenerator for ImageRecipeGeneratorImpl<'a, F
         max_distraction_count_per_image: u32,
     ) -> Result<Vec<ImageRecipe>, String> {
         let mut recipes: Vec<ImageRecipe> = Vec::new();
-        let mut object_cache: Vec<PrintableElementRecipe> = Vec::new();
 
         for i in 0..count {
             let mut image = ImageRecipe::new();
+            let mut object_cache: Vec<PrintableElementRecipe> = Vec::new();
 
             image.width = self.width;
             image.height = self.height;
@@ -257,8 +275,10 @@ impl<'a, FS: FileSystem> ImageRecipeGenerator for ImageRecipeGeneratorImpl<'a, F
 
             let object_count = ImageRecipeGeneratorImpl::<FS>::random(1, max_object_count_per_image);
             for _ in 0..object_count {
-                let object = self.pick_object(&mut object_cache)?;
-                image.object.push(object);
+                let object = self.try_to_pick_object(&mut object_cache)?;
+                if object.is_some() {
+                    image.object.push(object.unwrap());
+                }
             }
 
             if self.distraction_dir.is_some() {
