@@ -118,11 +118,14 @@ impl<'a, FS: FileSystem> ImageRecipeGeneratorImpl<'a, FS> {
             .map_err(|err| format!("Failed to get image size for {}: {}", path, err))?;
 
         element.path = path;
-        element.size =  Self::random_f32(0.1, 1.0);
+        element.size =  Self::random_f32(0.1, 0.7);
         element.angle = Self::random_f32(0.0, 360.0);
 
-        let element_final_width = (element.size * element_width as f32) as u32;
-        let element_final_height = (element.size * element_height as f32) as u32;
+        let width_ratio = element_height as f32 / element_width as f32;
+        let height_ratio = element_width as f32 / element_height as f32;
+
+        let element_final_width = (self.width as f32 * element.size * width_ratio) as u32;
+        let element_final_height = (self.height as f32 * element.size * height_ratio) as u32;
 
         let available_width = if self.width > element_final_width {
             self.width - element_final_width
